@@ -28,3 +28,21 @@ const (
 	KubexVaultSetupFlag      = "kubex_vault_setup"
 	KubexDepsSetupFlag       = "kubex_deps_setup"
 )
+
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
+func (v *ValidationError) Error() string {
+	return v.Message
+}
+func (v *ValidationError) FieldError() map[string]string {
+	return map[string]string{v.Field: v.Message}
+}
+func (v *ValidationError) FieldsError() map[string]string {
+	return map[string]string{v.Field: v.Message}
+}
+func (v *ValidationError) ErrorOrNil() error {
+	return v
+}

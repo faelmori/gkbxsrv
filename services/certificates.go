@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/faelmori/gokubexfs/internal/globals"
 	"github.com/faelmori/gokubexfs/internal/utils"
-	//"github.com/faelmori/kbx/mods/logz"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/chacha20poly1305"
 	"math/big"
