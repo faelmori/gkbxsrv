@@ -53,6 +53,7 @@ type DatabaseService interface {
 	checkDatabaseHealth() error
 	waitForDatabase(timeout time.Duration, maxRetries int) error
 	initialHealthCheck() (*gorm.DB, error)
+	SetConnection(db *gorm.DB)
 }
 
 type DatabaseServiceImpl struct {
@@ -69,6 +70,41 @@ type DatabaseServiceImpl struct {
 	lastStats sql.DBStats
 }
 
+func (d *DatabaseServiceImpl) loadViperConfig() {
+	//mtx := &sync.Mutex{}
+	//mtx.Lock()
+	//cfg := NewConfigService(d.fs.GetConfigFilePath(), d.fs.GetDefaultKeyPath(), d.fs.GetDefaultCertPath())
+	//dbCfg := cfg.GetDatabaseConfig()
+	//d = &DatabaseServiceImpl{
+	//	fs:        NewFileSystemService(""),
+	//	db:        nil,
+	//	mtx:       &sync.Mutex{},
+	//	wg:        &sync.WaitGroup{},
+	//	dbCfg:     dbCfg,
+	//	dbChanCtl: make(chan string),
+	//	dbChanErr: make(chan error),
+	//	dbChanSig: make(chan os.Signal),
+	//	mdRepo:    nil,
+	//	dbStats:   sql.DBStats{},
+	//	lastStats: sql.DBStats{},
+	//}
+	//db, dbErr := d.OpenDB()
+	//if dbErr != nil {
+	//	return fmt.Errorf("❌ Erro ao conectar ao banco de dados: %v", dbErr)
+	//}
+	//d.db = db
+	//mtx.Unlock()
+
+	vpDBCfg := viper.GetStringMapString("database")
+	d.dbCfg.Host = vpDBCfg["host"]
+	d.dbCfg.Port = vpDBCfg["port"]
+	d.dbCfg.Username = vpDBCfg["username"]
+	d.dbCfg.Password = vpDBCfg["password"]
+	d.dbCfg.Name = vpDBCfg["name"]
+	d.dbCfg.Type = vpDBCfg["type"]
+	d.dbCfg.Dsn = vpDBCfg["dsn"]
+	d.dbCfg.ConnectionString = vpDBCfg["connection_string"]
+}
 func (d *DatabaseServiceImpl) IsDockerRunning() bool {
 	cmd := exec.Command("docker", "ps")
 	if err := cmd.Run(); err != nil {
@@ -226,6 +262,7 @@ func (d *DatabaseServiceImpl) SetupDatabaseServices() error {
 }
 
 func (d *DatabaseServiceImpl) ConnectDB() error {
+	d.loadViperConfig()
 	if d.dbCfg.Dsn == "" {
 		if d.dbCfg.ConnectionString != "" {
 			d.dbCfg.Dsn = d.dbCfg.ConnectionString
@@ -245,6 +282,7 @@ func (d *DatabaseServiceImpl) ConnectDB() error {
 }
 func (d *DatabaseServiceImpl) GetDB() (*gorm.DB, error) {
 	if d.db == nil {
+		d.loadViperConfig()
 		_ = logz.ErrorLog(fmt.Sprintf("❌ Banco de dados não conectado. Tentando reconectar..."), "GoKubexFS")
 		if err := d.ConnectDB(); err != nil {
 			return nil, fmt.Errorf("❌ Erro ao conectar ao banco de dados: %v", err)
@@ -261,64 +299,8 @@ func (d *DatabaseServiceImpl) CloseDBConnection() error {
 	}
 	return sqlDB.Close()
 }
-func (d *DatabaseServiceImpl) ServiceHandler(dbChanData <-chan interface{}) {
-	for {
-		_ = logz.InfoLog(fmt.Sprintf("🔁 Aguardando dados do canal..."), "GoKubexFS", logz.QUIET)
-		select {
-		case dbCtl := <-d.dbChanCtl:
-			// d.mtx.Lock()
-			switch dbCtl {
-			case "reconnect":
-				_ = logz.InfoLog(fmt.Sprintf("🔄 Reconectando ao banco de dados..."), "GoKubexFS", logz.QUIET)
-				db := *d.db
-				dbClientB, dbClientBErr := db.DB()
-				if dbClientBErr != nil {
-					_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao obter a conexão SQL: %v", dbClientBErr), "GoKubexFS")
-					d.dbChanErr <- &globals.ValidationError{Message: dbClientBErr.Error(), Field: "dbChanCtl_reconnect"}
-				} else {
-					if dbClientBErrB := dbClientB.Close(); dbClientBErrB != nil {
-						_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao fechar a conexão SQL: %v", dbClientBErrB), "GoKubexFS")
-						d.dbChanErr <- &globals.ValidationError{Message: dbClientBErrB.Error(), Field: "dbChanCtl_reconnect"}
-					} else {
-						_ = logz.InfoLog(fmt.Sprintf("✅ Reconexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
-						d.dbChanErr <- nil
-					}
-				}
-				_ = logz.InfoLog(fmt.Sprintf("✅ Reconexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
-			case "isConnected":
-				_ = logz.InfoLog(fmt.Sprintf("🔗 Verificando conexão ao banco de dados..."), "GoKubexFS", logz.QUIET)
-				if _, dbErr := d.db.DB(); dbErr != nil {
-					_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao obter a conexão SQL: %v", dbErr), "GoKubexFS")
-					d.dbChanErr <- &globals.ValidationError{Message: dbErr.Error(), Field: "dbChanCtl_isConnected"}
-				} else {
-					_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
-					d.dbChanErr <- nil
-				}
-				_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados verificada com sucesso!"), "GoKubexFS", logz.QUIET)
-			case "getHost":
-				_ = logz.InfoLog(fmt.Sprintf("🔗 Obtendo host do banco de dados..."), "GoKubexFS", logz.QUIET)
-				dbCfgB := &d.dbCfg
-				_ = logz.InfoLog(fmt.Sprintf("✅ Host do banco de dados: %s", dbCfgB.Host), "GoKubexFS", logz.QUIET)
-				d.dbChanErr <- &globals.ValidationError{Message: dbCfgB.Host, Field: "dbChanCtl_getHost"}
-				_ = logz.InfoLog(fmt.Sprintf("✅ Host do banco de dados obtido com sucesso!"), "GoKubexFS", logz.QUIET)
-			case "close":
-				_ = logz.InfoLog(fmt.Sprintf("🔗 Fechando conexão ao banco de dados..."), "GoKubexFS", logz.QUIET)
-				dbB, dbBErr := d.db.DB()
-				if dbBErr != nil {
-					_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao obter a conexão SQL: %v", dbBErr), "GoKubexFS")
-					d.dbChanErr <- &globals.ValidationError{Message: dbBErr.Error(), Field: "dbChanCtl_close"}
-				} else {
-					_ = logz.InfoLog(fmt.Sprintf("🔗 Fechando conexão ao banco de dados..."), "GoKubexFS", logz.QUIET)
-					_ = dbB.Close()
-					d.dbChanErr <- nil
-				}
-				_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados fechada com sucesso!"), "GoKubexFS", logz.QUIET)
-			}
-			// d.mtx.Unlock()
-		}
-	}
-}
 func (d *DatabaseServiceImpl) Reconnect() error {
+	d.loadViperConfig()
 	_ = logz.InfoLog("Reconnecting to database...", "GDBase", logz.QUIET)
 	d.dbChanCtl <- "reconnect"
 	_ = logz.InfoLog("Database reconnection successful!", "GDBase", logz.QUIET)
@@ -358,6 +340,7 @@ func (d *DatabaseServiceImpl) IsConnected() error {
 	}
 }
 func (d *DatabaseServiceImpl) GetDBConfig(name string) (Database, error) {
+	d.loadViperConfig()
 	return d.dbCfg, nil
 }
 
@@ -377,6 +360,7 @@ func (d *DatabaseServiceImpl) GetConnection(client string) (*gorm.DB, error) {
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) OpenDB() (*gorm.DB, error) {
+	d.loadViperConfig()
 	if d.db != nil {
 		_ = logz.InfoLog("Database connection already open", "GDBase", logz.QUIET)
 		return d.db, nil
@@ -403,14 +387,14 @@ func (d *DatabaseServiceImpl) OpenDB() (*gorm.DB, error) {
 		return nil, logz.ErrorLog(fmt.Sprintf("Failed to connect to database: %v", dbErr), "GDBase", logz.QUIET)
 	}
 
-	_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
-	healthyDB, errorDb := d.initialHealthCheck()
-	if errorDb != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Failed to check database health: %v", errorDb), "GDBase", logz.QUIET)
-		return nil, errorDb
-	}
-	_ = logz.InfoLog("Database health check successful!", "GDBase", logz.QUIET)
-	db = healthyDB
+	//_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
+	//healthyDB, errorDb := d.initialHealthCheck()
+	//if errorDb != nil {
+	//	_ = logz.ErrorLog(fmt.Sprintf("Failed to check database health: %v", errorDb), "GDBase", logz.QUIET)
+	//	return nil, errorDb
+	//}
+	//_ = logz.InfoLog("Database health check successful!", "GDBase", logz.QUIET)
+	//db = healthyDB
 
 	_ = logz.InfoLog(fmt.Sprintf("Trying to migrate models to %s database...", d.dbCfg.Type), "GDBase", logz.QUIET)
 	if migrateErr := d.db.AutoMigrate(dbModels.ModelListExp...); migrateErr != nil {
@@ -464,7 +448,7 @@ func (d *DatabaseServiceImpl) connectPostgres() (*gorm.DB, error) {
 		}
 	}
 	_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
-	return d.initialHealthCheck()
+	return d.db, nil
 }
 func (d *DatabaseServiceImpl) connectSQLite() (*gorm.DB, error) {
 	var dbErr error
@@ -521,106 +505,23 @@ func (d *DatabaseServiceImpl) connectOracle() (*gorm.DB, error) {
 }
 func (d *DatabaseServiceImpl) checkDatabaseHealth() error {
 	if d != nil {
-		if d.db != nil {
-			_ = logz.InfoLog("Database object is not nil", "GDBase", logz.QUIET)
-		} else {
-			db, dbErr := d.OpenDB()
-			if dbErr != nil {
-				return dbErr
-			}
-			d.db = db
+		d.loadViperConfig()
+		if d.db == nil {
+			return logz.ErrorLog(fmt.Sprintf("❌ Database connection is nil"), "GDBase", logz.QUIET)
 		}
-
-		_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
-		db, dbErr := d.GetDB()
-		if dbErr != nil {
-			return dbErr
-		}
-		if db == nil {
-			dbD, dbDErr := d.OpenDB()
-			if dbDErr != nil {
-				return dbDErr
-			}
-			d.db = dbD
-		}
-
-		dbBSt := db.Dialector
-		if dbBSt == nil {
-			_ = logz.WarnLog("Database name is empty", "GDBase", logz.QUIET)
-			os.Exit(1)
-		} else {
-			_ = logz.InfoLog(fmt.Sprintf("Database name: %s", dbBSt), "GDBase", logz.QUIET)
-		}
-
-		var dbB *sql.DB
-		var sqlDBErr error
-		if dbB, sqlDBErr = db.DB(); sqlDBErr != nil || dbB == nil {
-			return logz.ErrorLog(fmt.Sprintf("Failed to get database connection: %v", sqlDBErr), "GDBase", logz.QUIET)
-		} else {
-			_ = logz.WarnLog("Database ping failed", "GDBase", logz.QUIET)
-			conn, connErr := dbB.Conn(context.Background())
-			if connErr != nil {
-				_ = logz.ErrorLog(fmt.Sprintf("Failed to get connection: %v", connErr), "GDBase", logz.QUIET)
-				return connErr
-			}
-			_ = logz.InfoLog("Reconnected. Setting connection parameters...", "GDBase", logz.QUIET)
-			dbB.SetConnMaxLifetime(5 * time.Minute)
-			dbB.SetMaxIdleConns(10)
-			dbB.SetMaxOpenConns(100)
-			dbB.SetConnMaxIdleTime(5 * time.Minute)
-			_ = logz.InfoLog("Connection parameters set successfully! Getting database stats...", "GDBase", logz.QUIET)
-			dbDummy := sql.DBStats{}
-			if d.dbStats != dbDummy {
-				_ = logz.InfoLog("Setting last stats...", "GDBase", logz.QUIET)
-				d.lastStats = d.dbStats
-			}
-			d.dbStats = dbB.Stats()
-			if conn.PingContext(context.Background()) != nil {
-				_ = logz.ErrorLog("Database ping failed", "GDBase", logz.QUIET)
-				return fmt.Errorf("database ping failed")
-			}
-			_ = logz.InfoLog("Database ping successful!", "GDBase", logz.QUIET)
-			return nil
-		}
-	} else {
-		mtx := &sync.Mutex{}
-		mtx.Lock()
-		cfg := NewConfigService(d.fs.GetConfigFilePath(), d.fs.GetDefaultKeyPath(), d.fs.GetDefaultCertPath())
-		dbCfg := cfg.GetDatabaseConfig()
-		d = &DatabaseServiceImpl{
-			fs:        NewFileSystemService(""),
-			db:        nil,
-			mtx:       &sync.Mutex{},
-			wg:        &sync.WaitGroup{},
-			dbCfg:     dbCfg,
-			dbChanCtl: make(chan string),
-			dbChanErr: make(chan error),
-			dbChanSig: make(chan os.Signal),
-			mdRepo:    nil,
-			dbStats:   sql.DBStats{},
-			lastStats: sql.DBStats{},
-		}
-		db, dbErr := d.OpenDB()
-		if dbErr != nil {
-			return fmt.Errorf("❌ Erro ao conectar ao banco de dados: %v", dbErr)
-		}
-		d.db = db
-		mtx.Unlock()
-		return nil
+		return d.db.Raw("SELECT 1").Error
 	}
-	return nil
+	return logz.ErrorLog(fmt.Sprintf("❌ Database connection is nil"), "GDBase", logz.QUIET)
 }
 func (d *DatabaseServiceImpl) waitForDatabase(timeout time.Duration, maxRetries int) error { //, wg *sync.WaitGroup) error {
 	_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
 	retryInterval := timeout
 	for i := 0; i < maxRetries; i++ {
-		err := d.checkDatabaseHealth()
-		if err == nil {
-			_ = logz.InfoLog("Conexão com o banco de dados bem-sucedida!", "GDBase", logz.QUIET)
-			return nil // Conexão bem-sucedida
+		if err := d.checkDatabaseHealth(); err == nil {
+			return nil
+		} else {
+			_ = logz.ErrorLog(fmt.Sprintf("Erro ao verificar a conexão com o banco de dados: %v", err), "GDBase", logz.QUIET)
 		}
-		_ = logz.WarnLog(fmt.Sprintf("Falha na conexão com o banco de dados: %v", err), "GDBase", logz.QUIET)
-		_ = logz.InfoLog(fmt.Sprintf("Tentando novamente em %v...", retryInterval), "GDBase", logz.QUIET)
 		time.Sleep(retryInterval)
 	}
 	return logz.ErrorLog(fmt.Sprintf("Falha na conexão com o banco de dados após %d tentativas", maxRetries), "GDBase", logz.QUIET)
@@ -636,11 +537,82 @@ func (d *DatabaseServiceImpl) initialHealthCheck() (*gorm.DB, error) {
 		return d.db, nil
 	}
 }
+func (d *DatabaseServiceImpl) SetConnection(db *gorm.DB) {
+	d.loadViperConfig()
+	if db != nil {
+		_ = logz.InfoLog(fmt.Sprintf("Setting database connection (%s)...", db.Name()), "GDBase")
+		d.db = db
+		_ = logz.InfoLog("Database connection set successfully!", "GDBase")
+	} else {
+		_ = logz.WarnLog("Database connection is nil", "GDBase")
+	}
+}
+
+func (d *DatabaseServiceImpl) ServiceHandler(dbChanData <-chan interface{}) {
+	d.loadViperConfig()
+	for {
+		_ = logz.InfoLog(fmt.Sprintf("🔁 Aguardando dados do canal..."), "GoKubexFS", logz.QUIET)
+		select {
+		case dbCtl := <-d.dbChanCtl:
+			// d.mtx.Lock()
+			switch dbCtl {
+			case "reconnect":
+				_ = logz.InfoLog(fmt.Sprintf("🔄 Reconectando ao banco de dados..."), "GoKubexFS", logz.QUIET)
+				db := *d.db
+				dbClientB, dbClientBErr := db.DB()
+				if dbClientBErr != nil {
+					_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao obter a conexão SQL: %v", dbClientBErr), "GoKubexFS")
+					d.dbChanErr <- &globals.ValidationError{Message: dbClientBErr.Error(), Field: "dbChanCtl_reconnect"}
+				} else {
+					if dbClientBErrB := dbClientB.Close(); dbClientBErrB != nil {
+						_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao fechar a conexão SQL: %v", dbClientBErrB), "GoKubexFS")
+						d.dbChanErr <- &globals.ValidationError{Message: dbClientBErrB.Error(), Field: "dbChanCtl_reconnect"}
+					} else {
+						_ = logz.InfoLog(fmt.Sprintf("✅ Reconexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
+						d.dbChanErr <- nil
+					}
+				}
+				_ = logz.InfoLog(fmt.Sprintf("✅ Reconexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
+			case "isConnected":
+				_ = logz.InfoLog(fmt.Sprintf("🔗 Verificando conexão ao banco de dados..."), "GoKubexFS", logz.QUIET)
+				if _, dbErr := d.db.DB(); dbErr != nil {
+					_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao obter a conexão SQL: %v", dbErr), "GoKubexFS")
+					d.dbChanErr <- &globals.ValidationError{Message: dbErr.Error(), Field: "dbChanCtl_isConnected"}
+				} else {
+					_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
+					d.dbChanErr <- nil
+				}
+				_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados verificada com sucesso!"), "GoKubexFS", logz.QUIET)
+			case "getHost":
+				_ = logz.InfoLog(fmt.Sprintf("🔗 Obtendo host do banco de dados..."), "GoKubexFS", logz.QUIET)
+				dbCfgB := &d.dbCfg
+				_ = logz.InfoLog(fmt.Sprintf("✅ Host do banco de dados: %s", dbCfgB.Host), "GoKubexFS", logz.QUIET)
+				d.dbChanErr <- &globals.ValidationError{Message: dbCfgB.Host, Field: "dbChanCtl_getHost"}
+				_ = logz.InfoLog(fmt.Sprintf("✅ Host do banco de dados obtido com sucesso!"), "GoKubexFS", logz.QUIET)
+			case "close":
+				_ = logz.InfoLog(fmt.Sprintf("🔗 Fechando conexão ao banco de dados..."), "GoKubexFS", logz.QUIET)
+				dbB, dbBErr := d.db.DB()
+				if dbBErr != nil {
+					_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao obter a conexão SQL: %v", dbBErr), "GoKubexFS")
+					d.dbChanErr <- &globals.ValidationError{Message: dbBErr.Error(), Field: "dbChanCtl_close"}
+				} else {
+					_ = logz.InfoLog(fmt.Sprintf("🔗 Fechando conexão ao banco de dados..."), "GoKubexFS", logz.QUIET)
+					_ = dbB.Close()
+					d.dbChanErr <- nil
+				}
+				_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados fechada com sucesso!"), "GoKubexFS", logz.QUIET)
+			}
+			// d.mtx.Unlock()
+		}
+	}
+}
 
 func NewDatabaseService(configFileArg string) DatabaseService {
+	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando serviço de banco de dados..."), "GoKubexFS", logz.QUIET)
 	cfg := NewConfigService(configFileArg, "", "")
 	dbCfg := cfg.GetDatabaseConfig()
 
+	_ = logz.InfoLog(fmt.Sprintf("🔗 Configurações do banco de dados: %v", dbCfg), "GoKubexFS", logz.QUIET)
 	databaseService = &DatabaseServiceImpl{
 		fs:        fs,
 		db:        nil,
@@ -651,7 +623,16 @@ func NewDatabaseService(configFileArg string) DatabaseService {
 		dbChanErr: make(chan error, 10),
 		dbChanSig: make(chan os.Signal, 1),
 	}
+	_ = logz.InfoLog(fmt.Sprintf("✅ Serviço de banco de dados iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
+	db, dbErr := databaseService.OpenDB()
+	if dbErr != nil {
+		_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao conectar ao banco de dados: %v", dbErr), "GoKubexFS")
+	} else {
+		_ = logz.InfoLog(fmt.Sprintf("✅ Conexão ao banco de dados realizada com sucesso!"), "GoKubexFS", logz.QUIET)
+		databaseService.db = db
+	}
 
+	_ = logz.InfoLog(fmt.Sprintf("🔗 Iniciando handler de serviços..."), "GoKubexFS", logz.QUIET)
 	return databaseService
 }
 
