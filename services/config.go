@@ -7,10 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/faelmori/gokubexfs/internal/globals"
+	fslib "github.com/faelmori/gokubexfs/internal/services/filesystem"
 	"github.com/faelmori/gokubexfs/internal/utils"
 	"github.com/faelmori/kbx/mods/logz"
-
-	//"github.com/faelmori/kbx/mods/logz"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"io"
@@ -21,7 +20,7 @@ import (
 )
 
 var crt CertService
-var fs FileSystemService
+var fs fslib.FileSystemService
 
 type ConfigService interface {
 	GetConfigPath() string
@@ -129,7 +128,7 @@ func (c *ConfigServiceImpl) compareMD5Hash() (bool, error) {
 
 func (c *ConfigServiceImpl) genCacheFlag(flagToMark string) error {
 	if fs == nil {
-		fs = NewFileSystemService(c.FilePath)
+		fs = fslib.NewFileSystemSrv(c.FilePath)
 	}
 	return fs.SetSetupCacheFlag(flagToMark)
 }
@@ -183,7 +182,7 @@ func (c *ConfigServiceImpl) WatchConfig(enable bool, event func(fsnotify.Event))
 }
 func (c *ConfigServiceImpl) SaveConfig() error {
 	if fs == nil {
-		fs = NewFileSystemService(c.FilePath)
+		fs = fslib.NewFileSystemSrv(c.FilePath)
 	}
 
 	if c.FilePath == "" {
@@ -279,7 +278,7 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 	_ = fs.SetSetupCacheFlag("kubex_db_password")
 
 	if c.FilePath == "" {
-		fs := NewFileSystemService(c.FilePath)
+		fs = fslib.NewFileSystemSrv(c.FilePath)
 		c.FilePath = fs.GetConfigFilePath()
 	}
 
@@ -409,7 +408,7 @@ func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
 	_ = fs.SetSetupCacheFlag("kubex_db_password")
 
 	if c.FilePath == "" {
-		fs := NewFileSystemService(c.FilePath)
+		fs = fslib.NewFileSystemSrv(c.FilePath)
 		c.FilePath = fs.GetConfigFilePath()
 	}
 
@@ -506,7 +505,7 @@ func NewConfigService(configPath, keyPath, certPath string) ConfigService {
 	}
 
 	if fs == nil {
-		fs = NewFileSystemService(configPath)
+		fs = fslib.NewFileSystemSrv(configPath)
 	}
 	if crt == nil {
 		crt = NewCertService(keyPath, certPath)

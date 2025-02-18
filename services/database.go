@@ -5,6 +5,7 @@ import (
 	"fmt"
 	dbModels "github.com/faelmori/gdbase/models"
 	"github.com/faelmori/gokubexfs/internal/globals"
+	"github.com/faelmori/gokubexfs/internal/services/filesystem"
 	"github.com/faelmori/kbx/mods/logz"
 	"github.com/godror/godror"
 	dsn2 "github.com/godror/godror/dsn"
@@ -57,7 +58,7 @@ type DatabaseService interface {
 }
 
 type DatabaseServiceImpl struct {
-	fs        FileSystemService
+	fs        filesystem.FileSystemService
 	db        *gorm.DB
 	mtx       *sync.Mutex
 	wg        *sync.WaitGroup
@@ -318,7 +319,7 @@ func (d *DatabaseServiceImpl) IsConnected() error {
 		cfg := NewConfigService(d.fs.GetConfigFilePath(), d.fs.GetDefaultKeyPath(), d.fs.GetDefaultCertPath())
 		dbCfg := cfg.GetDatabaseConfig()
 		d = &DatabaseServiceImpl{
-			fs:        NewFileSystemService(""),
+			fs:        filesystem.NewFileSystemSrv(""),
 			db:        nil,
 			mtx:       &sync.Mutex{},
 			wg:        &sync.WaitGroup{},
