@@ -1,12 +1,13 @@
 module github.com/faelmori/gokubexfs
 
-go 1.23.6
+go 1.24
 
 require (
 	github.com/faelmori/gdbase v0.0.0-00010101000000-000000000000
 	github.com/faelmori/kbx v0.0.0
 	github.com/fatih/color v1.18.0
 	github.com/fsnotify/fsnotify v1.8.0
+	github.com/goccy/go-json v0.10.5
 	github.com/godror/godror v0.46.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
@@ -71,7 +72,7 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

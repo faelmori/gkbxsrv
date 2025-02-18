@@ -48,15 +48,15 @@ type ConfigService interface {
 }
 type ConfigServiceImpl struct {
 	Logger   *log.Logger `json:"-"`
-	FilePath string      `json:"file_path;omitempty"`
-	KeyPath  string      `json:"key_path;omitempty"`
-	CertPath string      `json:"cert_path;omitempty"`
+	FilePath string      `json:"file_path"`
+	KeyPath  string      `json:"key_path"`
+	CertPath string      `json:"cert_path"`
 	Server   Server      `json:"server"`
-	Database Database    `json:"database;omitempty"`
+	Database Database    `json:"database"`
 	JWT      JWT         `json:"jwt"`
-	Redis    Redis       `json:"redis;omitempty"`
-	RabbitMQ RabbitMQ    `json:"rabbitmq;omitempty"`
-	MongoDB  MongoDB     `json:"mongodb;omitempty"`
+	Redis    Redis       `json:"redis"`
+	RabbitMQ RabbitMQ    `json:"rabbitmq"`
+	MongoDB  MongoDB     `json:"mongodb"`
 }
 
 func (c *ConfigServiceImpl) calculateMD5Hash(filePath string) (string, error) {
@@ -227,11 +227,13 @@ func (c *ConfigServiceImpl) LoadConfig() error {
 	if c.Logger == nil {
 		c.SetLogger()
 	}
+	logz.DebugLog(fmt.Sprintf("🔍 Carregando configuração de: '%s'", c.FilePath), "GoKubexFS", logz.QUIET)
 	viper.SetConfigFile(c.FilePath)
 	viper.AutomaticEnv()
 	if readConfigErr := viper.ReadInConfig(); readConfigErr != nil {
 		return fmt.Errorf("❌ Erro ao carregar configuração: %v", readConfigErr)
 	}
+	viper.WatchConfig()
 	return nil
 }
 func (c *ConfigServiceImpl) SetupConfig() error {
@@ -466,6 +468,9 @@ func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
 	if loadConfigErr != nil {
 		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
 	}
+
+	logz.InfoLog(fmt.Sprintf("✅ Configuração carregada com sucesso!"), "GoKubexFS", logz.QUIET)
+	logz.InfoLog(fmt.Sprintf("🔍 ConfigFile: '%s'", c.FilePath), "GoKubexFS")
 
 	return nil
 }

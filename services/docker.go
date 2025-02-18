@@ -8,11 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 )
 
 type DockerSrv interface {
-	LoadViperConfig()
+	LoadViperConfig() ConfigServiceImpl
 	InstallDocker() error
 	IsDockerInstalled() bool
 	IsDockerRunning() bool
@@ -29,68 +28,62 @@ type DockerSrvImpl struct {
 	config *ConfigServiceImpl
 }
 
-func (d *DockerSrvImpl) LoadViperConfig() {
+func (d *DockerSrvImpl) LoadViperConfig() ConfigServiceImpl {
+	cfg := NewConfigService(Fs.GetConfigFilePath(), Fs.GetDefaultKeyPath(), Fs.GetDefaultCertPath())
+
+	cfgLoadErr := cfg.LoadConfig()
+	if cfgLoadErr != nil {
+		log.Fatalf("❌ Erro ao carregar configuração: %v", cfgLoadErr)
+	}
+
 	vpDBCfg := viper.GetStringMapString("database")
 	dbCfg := &Database{
+		Type:             vpDBCfg["type"],
+		Driver:           vpDBCfg["driver"],
+		ConnectionString: vpDBCfg["connection_string"],
+		Dsn:              vpDBCfg["dsn"],
+		Path:             vpDBCfg["path"],
 		Host:             vpDBCfg["host"],
 		Port:             vpDBCfg["port"],
 		Username:         vpDBCfg["username"],
 		Password:         vpDBCfg["password"],
 		Name:             vpDBCfg["name"],
-		Type:             vpDBCfg["type"],
-		Dsn:              vpDBCfg["dsn"],
-		ConnectionString: vpDBCfg["connection_string"],
 	}
 	vpRdsCfg := viper.GetStringMapString("redis")
-	dBRds, dBRdsErr := strconv.Atoi(vpRdsCfg["db"])
-	if dBRdsErr != nil {
-		dBRds = 0
-	}
-	prtRds, prtRdsErr := strconv.Atoi(vpRdsCfg["port"])
-	if prtRdsErr != nil {
-		prtRds = 6379
-	}
 	rdsCfg := &Redis{
+		Enabled:  viper.GetBool("redis.enabled"),
 		Addr:     vpRdsCfg["host"],
-		Port:     prtRds,
+		Port:     vpRdsCfg["port"],
+		Username: vpRdsCfg["username"],
 		Password: vpRdsCfg["password"],
-		DB:       dBRds,
+		DB:       vpRdsCfg["db"],
 	}
 	vpRbtCfg := viper.GetStringMapString("rabbitmq")
-	prtRbbMQ, prtRbbMQErr := strconv.Atoi(vpRbtCfg["port"])
-	if prtRbbMQErr != nil {
-		prtRbbMQ = 5672
-	}
-	prtMgrRbbMQ, prtMgrRbbMQErr := strconv.Atoi(vpRbtCfg["management_port"])
-	if prtMgrRbbMQErr != nil {
-		prtMgrRbbMQ = 15672
-	}
 	rbtCfg := &RabbitMQ{
 		Enabled:        viper.GetBool("rabbitmq.enabled"),
-		Port:           prtRbbMQ,
-		ManagementPort: prtMgrRbbMQ,
+		Port:           vpRbtCfg["port"],
+		ManagementPort: vpRbtCfg["management_port"],
 		Username:       vpRbtCfg["username"],
 		Password:       vpRbtCfg["password"],
 	}
 	vpMngCfg := viper.GetStringMapString("mongodb")
-	prtMng, prtMngErr := strconv.Atoi(vpMngCfg["port"])
-	if prtMngErr != nil {
-		prtMng = 22022
-	}
 	mngCfg := &MongoDB{
 		Enabled:  viper.GetBool("mongodb.enabled"),
 		Host:     vpMngCfg["host"],
-		Port:     prtMng,
+		Port:     vpMngCfg["port"],
 		Username: vpMngCfg["username"],
 		Password: vpMngCfg["password"],
 	}
-	config := &ConfigServiceImpl{
+	config := ConfigServiceImpl{
 		Database: *dbCfg,
 		Redis:    *rdsCfg,
 		RabbitMQ: *rbtCfg,
 		MongoDB:  *mngCfg,
 	}
-	d.config = config
+
+	d.config = &config
+
+	return config
 }
 func (d *DockerSrvImpl) IsDockerInstalled() bool {
 	cmd := exec.Command("docker", "--version")
@@ -141,37 +134,35 @@ func (d *DockerSrvImpl) ExistsContainer(containerName string) bool {
 	return contains(string(output), containerName)
 }
 func (d *DockerSrvImpl) StartMongoDB() {
-	d.LoadViperConfig()
-	mongoPort := viper.GetString("mongodb.port")
+	fullConfig := d.LoadViperConfig()
 
 	if d.IsServiceRunning("kubex-mongodb") {
-		//
 		_ = logz.InfoLog(fmt.Sprintf("✅ MongoDB já está rodando!"), "GoKubexFS", logz.QUIET)
 		return
 	}
 
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando MongoDB..."), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("Info MongoDB:"), "GoKubexFS", logz.QUIET)
-	_ = logz.DebugLog(fmt.Sprintf("MONGODB_PORT=%s", mongoPort), "GoKubexFS", logz.QUIET)
-	_ = logz.DebugLog(fmt.Sprintf("MONGODB_HOST=%s", d.config.MongoDB.Host), "GoKubexFS", logz.QUIET)
-	_ = logz.DebugLog(fmt.Sprintf("MONGODB_USERNAME=%s", d.config.MongoDB.Username), "GoKubexFS", logz.QUIET)
-	_ = logz.DebugLog(fmt.Sprintf("MONGODB_PASSWORD=%s", d.config.MongoDB.Password), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_PORT=%d", fullConfig.MongoDB.Port), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_HOST=%s", fullConfig.MongoDB.Host), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_USERNAME=%s", fullConfig.MongoDB.Username), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_PASSWORD=%s", fullConfig.MongoDB.Password), "GoKubexFS", logz.QUIET)
 	//_ = logz.DebugLog(fmt.Sprintf("MONGODB_DB=%s", d.config.MongoDB.Database), "GoKubexFS", logz.QUIET)
 
-	d.StartService("kubex-mongodb", "mongo:latest", []string{fmt.Sprintf("%s:27017", mongoPort)}, nil)
+	d.StartService("kubex-mongodb", "mongo:latest", []string{fmt.Sprintf("%s:27017", fullConfig.MongoDB.Port)}, nil)
 	_ = logz.InfoLog(fmt.Sprintf("✅ MongoDB iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
 }
 func (d *DockerSrvImpl) StartPostgres() {
-	d.LoadViperConfig()
-	postgrePort := d.config.Database.Port
-	postgreHost := d.config.Database.Host
-	postgreUser := d.config.Database.Username
-	postgrePass := d.config.Database.Password
-	postgreName := d.config.Database.Name
-	postgrePath := d.config.Database.Path
-	postgreConnStr := d.config.Database.ConnectionString
+	fullConfig := d.LoadViperConfig()
+	postgrePort := fullConfig.Database.Port
+	postgreHost := fullConfig.Database.Host
+	postgreUser := fullConfig.Database.Username
+	postgrePass := fullConfig.Database.Password
+	postgreName := fullConfig.Database.Name
+	postgrePath := fullConfig.Database.Path
+	postgreConnStr := fullConfig.Database.ConnectionString
 	if postgreConnStr == "" {
-		postgreConnStr = d.config.Database.Dsn
+		postgreConnStr = fullConfig.Database.Dsn
 	}
 
 	if d.IsServiceRunning("kubex-postgres") {
@@ -181,17 +172,17 @@ func (d *DockerSrvImpl) StartPostgres() {
 
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Postgres..."), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("Info Postgres:"), "GoKubexFS", logz.QUIET)
-	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PORT=%s", postgrePort), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_CONNECTION_STRING=%s", postgreConnStr), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PORT=%d", postgrePort), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PATH=%s", postgrePath), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_HOST=%s", postgreHost), "GoKubexFS", logz.QUIET)
-	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_USER=%s", postgreUser), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_USERNAME=%s", postgreUser), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PASSWORD=%s", postgrePass), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_DB=%s", postgreName), "GoKubexFS", logz.QUIET)
 
 	d.StartService("kubex-postgres", "postgres:latest", []string{fmt.Sprintf("%s:5432", postgrePort)}, []string{
-		fmt.Sprintf("POSTGRES_PORT=%s", postgrePort),
-		fmt.Sprintf("POSTGRES_CONNECTION_STRING=%s", postgreConnStr),
+		fmt.Sprintf("POSTGRES_PORT=%d", postgrePort),
+		fmt.Sprintf("POSTGRES_CONNECTION_STRING=%v", postgreConnStr),
 		fmt.Sprintf("POSTGRES_PATH=%s", postgrePath),
 		fmt.Sprintf("POSTGRES_HOST=%s", postgreHost),
 		fmt.Sprintf("POSTGRES_USER=%s", postgreUser),
@@ -248,7 +239,7 @@ func (d *DockerSrvImpl) StartRedis() {
 		return
 	}
 
-	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Redis (%s)...", redisPort), "GoKubexFS", logz.QUIET)
+	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Redis (%d)...", redisPort), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("Info Redis:"), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("REDIS_PORT=%d", redisPort), "GoKubexFS", logz.QUIET)
 	_ = logz.DebugLog(fmt.Sprintf("REDIS_PASSWORD=%s", redisPassword), "GoKubexFS", logz.QUIET)
@@ -292,20 +283,8 @@ func (d *DockerSrvImpl) StartService(serviceName, image string, ports []string, 
 }
 func (d *DockerSrvImpl) SetupDatabaseServices() error {
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando serviços..."), "GoKubexFS", logz.QUIET)
-	if existsConfigFileErr := Fs.ExistsConfigFile(); !existsConfigFileErr {
-		cfg := NewConfigService(Fs.GetConfigFilePath(), Fs.GetDefaultKeyPath(), Fs.GetDefaultCertPath())
-		if cfgSetupErr := cfg.SetupConfig(); cfgSetupErr != nil {
-			return fmt.Errorf(fmt.Sprintf("❌ Erro ao configurar o arquivo de configuração: %v", cfgSetupErr))
-		}
-	} else {
-		viper.SetConfigFile(Fs.GetConfigFilePath())
-		if readConfigErr := viper.ReadInConfig(); readConfigErr != nil {
-			return fmt.Errorf(fmt.Sprintf("❌ Erro ao ler o arquivo de configuração: %v", readConfigErr))
-		}
-	}
-
 	if !d.IsDockerRunning() {
-		return fmt.Errorf(fmt.Sprintf("❌ Docker não está rodando!"))
+		return logz.ErrorLog(fmt.Sprintf("❌ Docker não está rodando!"), "GoKubexFS")
 	}
 	if !d.ExistsContainer("kubex-postgres") {
 		d.StartPostgres()

@@ -30,26 +30,26 @@ type JWT struct {
 	RefreshExpirationSecs int    `gorm:"omitempty" json:"refresh_expiration_secs"`
 }
 type Redis struct {
-	Enabled  bool   `gorm:"default:true" json:"enabled"`
-	Addr     string `gorm:"omitempty" json:"addr"`
-	Port     int    `gorm:"omitempty" json:"port"`
-	Username string `gorm:"omitempty" json:"username"`
-	Password string `gorm:"omitempty" json:"password"`
-	DB       int    `gorm:"omitempty" json:"db"`
+	Enabled  bool        `gorm:"default:true" json:"enabled"`
+	Addr     string      `gorm:"omitempty" json:"addr"`
+	Port     interface{} `gorm:"omitempty" json:"port"`
+	Username string      `gorm:"omitempty" json:"username"`
+	Password string      `gorm:"omitempty" json:"password"`
+	DB       interface{} `gorm:"omitempty" json:"db"`
 }
 type RabbitMQ struct {
-	Enabled        bool   `gorm:"default:true" json:"enabled"`
-	Username       string `gorm:"omitempty" json:"username"`
-	Password       string `gorm:"omitempty" json:"password"`
-	Port           int    `gorm:"omitempty" json:"port"`
-	ManagementPort int    `gorm:"omitempty" json:"management_port"`
+	Enabled        bool        `gorm:"default:true" json:"enabled"`
+	Username       string      `gorm:"omitempty" json:"username"`
+	Password       string      `gorm:"omitempty" json:"password"`
+	Port           interface{} `gorm:"omitempty" json:"port"`
+	ManagementPort interface{} `gorm:"omitempty" json:"management_port"`
 }
 type MongoDB struct {
-	Enabled  bool   `json:"enabled;default:false"`
-	Host     string `json:"host;default:localhost"`
-	Port     int    `json:"port;default:22022"`
-	Username string `json:"username;omitempty"`
-	Password string `json:"password;omitempty"`
+	Enabled  bool        `json:"enabled"`
+	Host     string      `json:"host"`
+	Port     interface{} `json:"port"`
+	Username string      `json:"username"`
+	Password string      `json:"password"`
 }
 
 type Certificate struct {
