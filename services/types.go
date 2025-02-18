@@ -12,10 +12,11 @@ type Database struct {
 	Type             string      `gorm:"not null" json:"type"`
 	Driver           string      `gorm:"not null" json:"driver"`
 	ConnectionString string      `gorm:"omitempty" json:"connection_string"`
+	Dsn              string      `gorm:"omitempty" json:"dsn"`
 	Path             string      `gorm:"omitempty" json:"path"`
 	Host             string      `gorm:"omitempty" json:"host"`
 	Port             interface{} `gorm:"omitempty" json:"port"`
-	User             string      `gorm:"omitempty" json:"user"`
+	Username         string      `gorm:"omitempty" json:"username"`
 	Password         string      `gorm:"omitempty" json:"password"`
 	Name             string      `gorm:"omitempty" json:"name"`
 }
@@ -30,12 +31,13 @@ type JWT struct {
 type Redis struct {
 	Enabled  bool   `gorm:"default:true" json:"enabled"`
 	Addr     string `gorm:"omitempty" json:"addr"`
+	Username string `gorm:"omitempty" json:"username"`
 	Password string `gorm:"omitempty" json:"password"`
 	DB       int    `gorm:"omitempty" json:"db"`
 }
 type RabbitMQ struct {
 	Enabled        bool   `gorm:"default:true" json:"enabled"`
-	User           string `gorm:"omitempty" json:"user"`
+	Username       string `gorm:"omitempty" json:"username"`
 	Password       string `gorm:"omitempty" json:"password"`
 	Port           int    `gorm:"omitempty" json:"port"`
 	ManagementPort int    `gorm:"omitempty" json:"management_port"`

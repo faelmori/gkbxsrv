@@ -46,3 +46,11 @@ func (v *ValidationError) FieldsError() map[string]string {
 func (v *ValidationError) ErrorOrNil() error {
 	return v
 }
+
+type GenericRepo interface {
+	Create(u interface{}) (interface{}, error)
+	FindOne(where ...interface{}) (interface{}, error)
+	FindAll(where ...interface{}) ([]interface{}, error)
+	Update(u interface{}) (interface{}, error)
+	Delete(id uint) error
+}
