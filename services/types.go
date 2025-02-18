@@ -8,6 +8,7 @@ type Server struct {
 	ReadTimeout  int    `gorm:"not null" json:"read_timeout"`
 	WriteTimeout int    `gorm:"not null" json:"write_timeout"`
 }
+
 type Database struct {
 	Type             string      `gorm:"not null" json:"type"`
 	Driver           string      `gorm:"not null" json:"driver"`
@@ -31,6 +32,7 @@ type JWT struct {
 type Redis struct {
 	Enabled  bool   `gorm:"default:true" json:"enabled"`
 	Addr     string `gorm:"omitempty" json:"addr"`
+	Port     int    `gorm:"omitempty" json:"port"`
 	Username string `gorm:"omitempty" json:"username"`
 	Password string `gorm:"omitempty" json:"password"`
 	DB       int    `gorm:"omitempty" json:"db"`
@@ -41,6 +43,13 @@ type RabbitMQ struct {
 	Password       string `gorm:"omitempty" json:"password"`
 	Port           int    `gorm:"omitempty" json:"port"`
 	ManagementPort int    `gorm:"omitempty" json:"management_port"`
+}
+type MongoDB struct {
+	Enabled  bool   `json:"enabled;default:false"`
+	Host     string `json:"host;default:localhost"`
+	Port     int    `json:"port;default:22022"`
+	Username string `json:"username;omitempty"`
+	Password string `json:"password;omitempty"`
 }
 
 type Certificate struct {

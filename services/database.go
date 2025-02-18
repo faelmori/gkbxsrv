@@ -16,9 +16,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
-	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -27,15 +25,7 @@ import (
 var databaseService *DatabaseServiceImpl
 
 type DatabaseService interface {
-	IsDockerRunning() bool
-	IsServiceRunning(serviceName string) bool
-	ExistsContainer(containerName string) bool
-	StartService(serviceName, image string, ports []string, envVars []string)
-	SetupDatabaseServices() error
-	StartMongoDB()
-	StartPostgres()
-	StartRabbitMQ()
-	StartRedis()
+	loadViperConfig()
 	GetDBConfig(name string) (Database, error)
 	ConnectDB() error
 	GetDB() (*gorm.DB, error)
@@ -72,30 +62,6 @@ type DatabaseServiceImpl struct {
 }
 
 func (d *DatabaseServiceImpl) loadViperConfig() {
-	//mtx := &sync.Mutex{}
-	//mtx.Lock()
-	//cfg := NewConfigService(d.fs.GetConfigFilePath(), d.fs.GetDefaultKeyPath(), d.fs.GetDefaultCertPath())
-	//dbCfg := cfg.GetDatabaseConfig()
-	//d = &DatabaseServiceImpl{
-	//	fs:        NewFileSystemService(""),
-	//	db:        nil,
-	//	mtx:       &sync.Mutex{},
-	//	wg:        &sync.WaitGroup{},
-	//	dbCfg:     dbCfg,
-	//	dbChanCtl: make(chan string),
-	//	dbChanErr: make(chan error),
-	//	dbChanSig: make(chan os.Signal),
-	//	mdRepo:    nil,
-	//	dbStats:   sql.DBStats{},
-	//	lastStats: sql.DBStats{},
-	//}
-	//db, dbErr := d.OpenDB()
-	//if dbErr != nil {
-	//	return fmt.Errorf("❌ Erro ao conectar ao banco de dados: %v", dbErr)
-	//}
-	//d.db = db
-	//mtx.Unlock()
-
 	vpDBCfg := viper.GetStringMapString("database")
 	d.dbCfg.Host = vpDBCfg["host"]
 	d.dbCfg.Port = vpDBCfg["port"]
@@ -105,161 +71,6 @@ func (d *DatabaseServiceImpl) loadViperConfig() {
 	d.dbCfg.Type = vpDBCfg["type"]
 	d.dbCfg.Dsn = vpDBCfg["dsn"]
 	d.dbCfg.ConnectionString = vpDBCfg["connection_string"]
-}
-func (d *DatabaseServiceImpl) IsDockerRunning() bool {
-	cmd := exec.Command("docker", "ps")
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("❌ Docker não está rodando: %v", err)
-	}
-	return true
-}
-func (d *DatabaseServiceImpl) IsServiceRunning(serviceName string) bool {
-	cmd := exec.Command("docker", "ps", "--filter", fmt.Sprintf("name=%s", serviceName), "--format", "{{.Names}}")
-	output, err := cmd.Output()
-	if err != nil {
-		_ = logz.InfoLog(fmt.Sprintf("❌ Erro ao verificar serviço Docker: %v", err), "GoKubexFS", logz.QUIET)
-	}
-	return string(output) != ""
-}
-func (d *DatabaseServiceImpl) ExistsContainer(containerName string) bool {
-	cmd := exec.Command("docker", "ps", "-a", "--format", "{{.Names}}")
-	output, err := cmd.Output()
-	if err != nil {
-		_ = logz.InfoLog(fmt.Sprintf("❌ Erro ao verificar containers: %v", err), "GoKubexFS", logz.QUIET)
-	}
-	return contains(string(output), containerName)
-}
-func (d *DatabaseServiceImpl) StartMongoDB() {
-	mongoPort := viper.GetString("mongodb.port")
-
-	if d.IsServiceRunning("kubex-mongodb") {
-		//
-		_ = logz.InfoLog(fmt.Sprintf("✅ MongoDB já está rodando!"), "GoKubexFS", logz.QUIET)
-		return
-	}
-
-	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando MongoDB..."), "GoKubexFS", logz.QUIET)
-	d.StartService("kubex-mongodb", "mongo:latest", []string{fmt.Sprintf("%s:27017", mongoPort)}, nil)
-	_ = logz.InfoLog(fmt.Sprintf("✅ MongoDB iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
-}
-func (d *DatabaseServiceImpl) StartPostgres() {
-	postgrePort := viper.GetString("database.port")
-	postgreHost := viper.GetString("database.host")
-	postgreUser := viper.GetString("database.username")
-	postgrePass := viper.GetString("database.password")
-	postgreName := viper.GetString("database.name")
-	postgrePath := viper.GetString("database.path")
-	postgreConnStr := viper.GetString("database.connection_string")
-
-	if d.IsServiceRunning("kubex-postgres") {
-		_ = logz.InfoLog(fmt.Sprintf("✅ Postgres já está rodando!"), "GoKubexFS", logz.QUIET)
-		return
-	}
-
-	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Postgres..."), "GoKubexFS", logz.QUIET)
-	d.StartService("kubex-postgres", "postgres:latest", []string{fmt.Sprintf("%s:5432", postgrePort)}, []string{
-		fmt.Sprintf("POSTGRES_CONNECTION_STRING=%s", postgreConnStr),
-		fmt.Sprintf("POSTGRES_PATH=%s", postgrePath),
-		fmt.Sprintf("POSTGRES_HOST=%s", postgreHost),
-		fmt.Sprintf("POSTGRES_USER=%s", postgreUser),
-		fmt.Sprintf("POSTGRES_PASSWORD=%s", postgrePass),
-		fmt.Sprintf("POSTGRES_DB=%s", postgreName),
-		fmt.Sprintf("POSTGRESQL_ENABLE_TLS=%s", "false"),
-		fmt.Sprintf("POSTGRESQL_MAX_CONNECTIONS=%s", "100"),
-		fmt.Sprintf("POSTGRESQL_VOLUME_DIR=%s", "/var/lib/postgresql/data"),
-		fmt.Sprintf("POSTGRESQL_TIMEZONE=%s", "UTC"),
-	})
-	_ = logz.InfoLog(fmt.Sprintf("✅ Postgres iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
-
-}
-func (d *DatabaseServiceImpl) StartRabbitMQ() {
-	rabbitPort := viper.GetString("rabbitmq.port")
-	rabbitMgmtPort := viper.GetString("rabbitmq.management_port")
-	rabbitUser := viper.GetString("rabbitmq.username")
-	rabbitPass := viper.GetString("rabbitmq.password")
-
-	if d.IsServiceRunning("kubex-rabbitmq") {
-		_ = logz.InfoLog(fmt.Sprintf("✅ RabbitMQ já está rodando!"), "GoKubexFS", logz.QUIET)
-		return
-	}
-
-	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando RabbitMQ..."), "GoKubexFS", logz.QUIET)
-	d.StartService("kubex-rabbitmq", "rabbitmq:management", []string{
-		fmt.Sprintf("%s:5672", rabbitPort),
-		fmt.Sprintf("%s:15672", rabbitMgmtPort),
-	}, []string{
-		fmt.Sprintf("RABBITMQ_DEFAULT_USER=%s", rabbitUser),
-		fmt.Sprintf("RABBITMQ_DEFAULT_PASS=%s", rabbitPass),
-	})
-	_ = logz.InfoLog(fmt.Sprintf("✅ RabbitMQ iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
-}
-func (d *DatabaseServiceImpl) StartRedis() {
-	redisPort := viper.GetString("redis.port")
-
-	if d.IsServiceRunning("kubex-redis") {
-		_ = logz.InfoLog(fmt.Sprintf("✅ Redis já está rodando!"), "GoKubexFS", logz.QUIET)
-		return
-	}
-
-	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Redis..."), "GoKubexFS", logz.QUIET)
-	d.StartService("kubex-redis", "redis:latest", []string{fmt.Sprintf("%s:6379", redisPort)}, nil)
-	_ = logz.InfoLog(fmt.Sprintf("✅ Redis iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
-}
-func (d *DatabaseServiceImpl) StartService(serviceName, image string, ports []string, envVars []string) {
-	if d.IsServiceRunning(serviceName) {
-		fmt.Printf("✅ %s já está rodando!\n", serviceName)
-		return
-	}
-
-	fmt.Printf("🚀 Iniciando %s...\n", serviceName)
-	args := []string{"run", "-d", "--name", serviceName}
-	for _, port := range ports {
-		args = append(args, "-p", port)
-	}
-	for _, env := range envVars {
-		args = append(args, "-e", env)
-	}
-	args = append(args, image)
-
-	cmd := exec.Command("docker", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("❌ Erro ao iniciar %s: %v", serviceName, err)
-	}
-	fmt.Printf("✅ %s iniciado com sucesso!\n", serviceName)
-}
-func (d *DatabaseServiceImpl) SetupDatabaseServices() error {
-	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando serviços..."), "GoKubexFS", logz.QUIET)
-	if existsConfigFileErr := d.fs.ExistsConfigFile(); !existsConfigFileErr {
-		cfg := NewConfigService(d.fs.GetConfigFilePath(), d.fs.GetDefaultKeyPath(), d.fs.GetDefaultCertPath())
-		if cfgSetupErr := cfg.SetupConfig(); cfgSetupErr != nil {
-			return fmt.Errorf(fmt.Sprintf("❌ Erro ao configurar o arquivo de configuração: %v", cfgSetupErr))
-		}
-	} else {
-		viper.SetConfigFile(d.fs.GetConfigFilePath())
-		if readConfigErr := viper.ReadInConfig(); readConfigErr != nil {
-			return fmt.Errorf(fmt.Sprintf("❌ Erro ao ler o arquivo de configuração: %v", readConfigErr))
-		}
-	}
-
-	if !d.IsDockerRunning() {
-		return fmt.Errorf(fmt.Sprintf("❌ Docker não está rodando!"))
-	}
-	if !d.ExistsContainer("kubex-postgres") {
-		d.StartPostgres()
-	}
-	if !d.ExistsContainer("kubex-mongodb") {
-		d.StartMongoDB()
-	}
-	if !d.ExistsContainer("kubex-redis") {
-		d.StartRedis()
-	}
-	if !d.ExistsContainer("kubex-rabbitmq") {
-		d.StartRabbitMQ()
-	}
-
-	return nil
 }
 
 func (d *DatabaseServiceImpl) ConnectDB() error {
@@ -358,6 +169,7 @@ func (d *DatabaseServiceImpl) GetHost() (string, error) {
 	return d.dbCfg.Host, nil
 }
 func (d *DatabaseServiceImpl) GetConnection(client string) (*gorm.DB, error) {
+	d.loadViperConfig()
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) OpenDB() (*gorm.DB, error) {
@@ -388,15 +200,6 @@ func (d *DatabaseServiceImpl) OpenDB() (*gorm.DB, error) {
 		return nil, logz.ErrorLog(fmt.Sprintf("Failed to connect to database: %v", dbErr), "GDBase", logz.QUIET)
 	}
 
-	//_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
-	//healthyDB, errorDb := d.initialHealthCheck()
-	//if errorDb != nil {
-	//	_ = logz.ErrorLog(fmt.Sprintf("Failed to check database health: %v", errorDb), "GDBase", logz.QUIET)
-	//	return nil, errorDb
-	//}
-	//_ = logz.InfoLog("Database health check successful!", "GDBase", logz.QUIET)
-	//db = healthyDB
-
 	_ = logz.InfoLog(fmt.Sprintf("Trying to migrate models to %s database...", d.dbCfg.Type), "GDBase", logz.QUIET)
 	if migrateErr := d.db.AutoMigrate(dbModels.ModelListExp...); migrateErr != nil {
 		_ = logz.ErrorLog(fmt.Sprintf("Failed to migrate models to %s database: %v", d.dbCfg.Type, migrateErr), "GDBase", logz.QUIET)
@@ -407,6 +210,7 @@ func (d *DatabaseServiceImpl) OpenDB() (*gorm.DB, error) {
 	return db, nil
 }
 func (d *DatabaseServiceImpl) connectMySQL() (*gorm.DB, error) {
+	d.loadViperConfig()
 	var dsn string
 	if d.dbCfg.Dsn != "" {
 		dsn = d.dbCfg.Dsn
@@ -425,6 +229,7 @@ func (d *DatabaseServiceImpl) connectMySQL() (*gorm.DB, error) {
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) connectPostgres() (*gorm.DB, error) {
+	d.loadViperConfig()
 	_ = logz.InfoLog("Connecting to Postgres database...", "GDBase", logz.QUIET)
 	if d.db == nil {
 		_ = logz.InfoLog("Database connection is nil, creating new connection...", "GDBase", logz.QUIET)
@@ -452,6 +257,7 @@ func (d *DatabaseServiceImpl) connectPostgres() (*gorm.DB, error) {
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) connectSQLite() (*gorm.DB, error) {
+	d.loadViperConfig()
 	var dbErr error
 	d.db, dbErr = gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
 	if dbErr != nil {
@@ -460,6 +266,7 @@ func (d *DatabaseServiceImpl) connectSQLite() (*gorm.DB, error) {
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) connectMSSQL() (*gorm.DB, error) {
+	d.loadViperConfig()
 	var dsn string
 	if d.dbCfg.Dsn != "" {
 		dsn = d.dbCfg.Dsn
@@ -478,6 +285,7 @@ func (d *DatabaseServiceImpl) connectMSSQL() (*gorm.DB, error) {
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) connectOracle() (*gorm.DB, error) {
+	d.loadViperConfig()
 	dsn := viper.GetString("database.connection_string")
 	if dsn == "" {
 		dsn = fmt.Sprintf("%s/%s@%s:%s/%s", d.dbCfg.Username, d.dbCfg.Password, d.dbCfg.Host, d.dbCfg.Port, d.dbCfg.Name)
@@ -505,6 +313,7 @@ func (d *DatabaseServiceImpl) connectOracle() (*gorm.DB, error) {
 	return d.db, nil
 }
 func (d *DatabaseServiceImpl) checkDatabaseHealth() error {
+	d.loadViperConfig()
 	if d != nil {
 		d.loadViperConfig()
 		if d.db == nil {
@@ -514,7 +323,8 @@ func (d *DatabaseServiceImpl) checkDatabaseHealth() error {
 	}
 	return logz.ErrorLog(fmt.Sprintf("❌ Database connection is nil"), "GDBase", logz.QUIET)
 }
-func (d *DatabaseServiceImpl) waitForDatabase(timeout time.Duration, maxRetries int) error { //, wg *sync.WaitGroup) error {
+func (d *DatabaseServiceImpl) waitForDatabase(timeout time.Duration, maxRetries int) error {
+	d.loadViperConfig()
 	_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
 	retryInterval := timeout
 	for i := 0; i < maxRetries; i++ {
@@ -528,6 +338,7 @@ func (d *DatabaseServiceImpl) waitForDatabase(timeout time.Duration, maxRetries 
 	return logz.ErrorLog(fmt.Sprintf("Falha na conexão com o banco de dados após %d tentativas", maxRetries), "GDBase", logz.QUIET)
 }
 func (d *DatabaseServiceImpl) initialHealthCheck() (*gorm.DB, error) {
+	d.loadViperConfig()
 	_ = logz.InfoLog("Checking database health...", "GDBase", logz.QUIET)
 	timeout := 2 * time.Second
 	maxRetries := 3
@@ -616,10 +427,9 @@ func NewDatabaseService(configFileArg string) DatabaseService {
 		return nil
 	}
 	dbCfg := cfg.GetDatabaseConfig()
-
 	_ = logz.InfoLog(fmt.Sprintf("🔗 Configurações do banco de dados: %v", dbCfg), "GoKubexFS", logz.QUIET)
 	databaseService = &DatabaseServiceImpl{
-		fs:        fs,
+		fs:        Fs,
 		db:        nil,
 		mtx:       &sync.Mutex{},
 		wg:        &sync.WaitGroup{},
@@ -628,6 +438,7 @@ func NewDatabaseService(configFileArg string) DatabaseService {
 		dbChanErr: make(chan error, 10),
 		dbChanSig: make(chan os.Signal, 1),
 	}
+	databaseService.loadViperConfig()
 	_ = logz.InfoLog(fmt.Sprintf("✅ Serviço de banco de dados iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
 	db, dbErr := databaseService.OpenDB()
 	if dbErr != nil {
