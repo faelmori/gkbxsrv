@@ -12,9 +12,9 @@ import (
 )
 
 type DockerSrv interface {
-	IsDockerInstalled() bool
+	LoadViperConfig()
 	InstallDocker() error
-
+	IsDockerInstalled() bool
 	IsDockerRunning() bool
 	IsServiceRunning(serviceName string) bool
 	ExistsContainer(containerName string) bool
@@ -102,7 +102,6 @@ func (d *DockerSrvImpl) InstallDocker() error {
 		fmt.Println("✅ Docker já está instalado!")
 		return nil
 	}
-
 	fmt.Println("🚀 Instalando Docker...")
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
@@ -152,6 +151,13 @@ func (d *DockerSrvImpl) StartMongoDB() {
 	}
 
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando MongoDB..."), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("Info MongoDB:"), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_PORT=%s", mongoPort), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_HOST=%s", d.config.MongoDB.Host), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_USERNAME=%s", d.config.MongoDB.Username), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("MONGODB_PASSWORD=%s", d.config.MongoDB.Password), "GoKubexFS", logz.QUIET)
+	//_ = logz.DebugLog(fmt.Sprintf("MONGODB_DB=%s", d.config.MongoDB.Database), "GoKubexFS", logz.QUIET)
+
 	d.StartService("kubex-mongodb", "mongo:latest", []string{fmt.Sprintf("%s:27017", mongoPort)}, nil)
 	_ = logz.InfoLog(fmt.Sprintf("✅ MongoDB iniciado com sucesso!"), "GoKubexFS", logz.QUIET)
 }
@@ -174,6 +180,15 @@ func (d *DockerSrvImpl) StartPostgres() {
 	}
 
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Postgres..."), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("Info Postgres:"), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PORT=%s", postgrePort), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_CONNECTION_STRING=%s", postgreConnStr), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PATH=%s", postgrePath), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_HOST=%s", postgreHost), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_USER=%s", postgreUser), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_PASSWORD=%s", postgrePass), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("POSTGRES_DB=%s", postgreName), "GoKubexFS", logz.QUIET)
+
 	d.StartService("kubex-postgres", "postgres:latest", []string{fmt.Sprintf("%s:5432", postgrePort)}, []string{
 		fmt.Sprintf("POSTGRES_PORT=%s", postgrePort),
 		fmt.Sprintf("POSTGRES_CONNECTION_STRING=%s", postgreConnStr),
@@ -206,6 +221,12 @@ func (d *DockerSrvImpl) StartRabbitMQ() {
 	}
 
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando RabbitMQ..."), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("Info RabbitMQ:"), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("RABBITMQ_PORT=%d", rabbitPort), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("RABBITMQ_MANAGEMENT_PORT=%d", rabbitMgmtPort), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("RABBITMQ_DEFAULT_USER=%s", rabbitUser), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("RABBITMQ_DEFAULT_PASS=%s", rabbitPass), "GoKubexFS", logz.QUIET)
+
 	d.StartService("kubex-rabbitmq", "rabbitmq:management", []string{
 		fmt.Sprintf("%s:5672", rabbitPort),
 		fmt.Sprintf("%s:15672", rabbitMgmtPort),
@@ -228,9 +249,16 @@ func (d *DockerSrvImpl) StartRedis() {
 	}
 
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando Redis (%s)...", redisPort), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("Info Redis:"), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("REDIS_PORT=%d", redisPort), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("REDIS_PASSWORD=%s", redisPassword), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("REDIS_USERNAME=%s", redisUsername), "GoKubexFS", logz.QUIET)
+	_ = logz.DebugLog(fmt.Sprintf("REDIS_DB=%d", redisDB), "GoKubexFS", logz.QUIET)
+
 	d.StartService("kubex-redis", "redis:latest", []string{
 		fmt.Sprintf("%s:6379", redisPort),
 	}, []string{
+		fmt.Sprintf("REDIS_PORT=%d", redisPort),
 		fmt.Sprintf("REDIS_PASSWORD=%s", redisPassword),
 		fmt.Sprintf("REDIS_USERNAME=%s", redisUsername),
 		fmt.Sprintf("REDIS_DB=%d", redisDB),
@@ -257,7 +285,8 @@ func (d *DockerSrvImpl) StartService(serviceName, image string, ports []string, 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("❌ Erro ao iniciar %s: %v", serviceName, err)
+		_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao iniciar %s: %v => %s %s %s", serviceName, err, args, ports, envVars), "GoKubexFS", logz.QUIET)
+		os.Exit(1)
 	}
 	fmt.Printf("✅ %s iniciado com sucesso!\n", serviceName)
 }
@@ -290,6 +319,12 @@ func (d *DockerSrvImpl) SetupDatabaseServices() error {
 	if !d.ExistsContainer("kubex-rabbitmq") {
 		d.StartRabbitMQ()
 	}
+
+	_ = logz.InfoLog(fmt.Sprintf("🚀 Serviços iniciados com sucesso:"), "GoKubexFS")
+	_ = logz.InfoLog(fmt.Sprintf("✅ Postgres: %s", d.config.Database.Dsn), "GoKubexFS")
+	_ = logz.InfoLog(fmt.Sprintf("✅ MongoDB: mongodb://%s:%d", d.config.MongoDB.Host, d.config.MongoDB.Port), "GoKubexFS")
+	_ = logz.InfoLog(fmt.Sprintf("✅ Redis: redis://%s:%d", d.config.Redis.Addr, d.config.Redis.Port), "GoKubexFS")
+	_ = logz.InfoLog(fmt.Sprintf("✅ RabbitMQ: amqp://%s:%d", d.config.RabbitMQ.ManagementPort, d.config.RabbitMQ.Port), "GoKubexFS")
 
 	return nil
 }
