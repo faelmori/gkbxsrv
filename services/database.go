@@ -610,6 +610,10 @@ func (d *DatabaseServiceImpl) ServiceHandler(dbChanData <-chan interface{}) {
 func NewDatabaseService(configFileArg string) DatabaseService {
 	_ = logz.InfoLog(fmt.Sprintf("🚀 Iniciando serviço de banco de dados..."), "GoKubexFS", logz.QUIET)
 	cfg := NewConfigService(configFileArg, "", "")
+	if stpErr := cfg.SetupConfigFromDbService(); stpErr != nil {
+		_ = logz.ErrorLog(fmt.Sprintf("❌ Erro ao configurar o arquivo de configuração: %v", stpErr), "GoKubexFS")
+		return nil
+	}
 	dbCfg := cfg.GetDatabaseConfig()
 
 	_ = logz.InfoLog(fmt.Sprintf("🔗 Configurações do banco de dados: %v", dbCfg), "GoKubexFS", logz.QUIET)

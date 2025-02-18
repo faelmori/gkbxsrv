@@ -2,6 +2,7 @@ package services
 
 import (
 	"crypto/md5"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -45,6 +46,7 @@ type ConfigService interface {
 	saveMD5Hash() error
 	compareMD5Hash() (bool, error)
 	genCacheFlag(flagToMark string) error
+	SetupConfigFromDbService() error
 }
 type ConfigServiceImpl struct {
 	Logger   *log.Logger `json:"-"`
@@ -347,6 +349,132 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 
 	if dbErr := dbObj.SetupDatabaseServices(); dbErr != nil {
 		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao configurar banco de dados: %v", dbErr), "GoKubexFS", logz.QUIET)
+	}
+
+	return nil
+}
+
+func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
+	if blKeepCfg, blKeepCfgErr := c.compareMD5Hash(); blKeepCfg && blKeepCfgErr == nil {
+		if loadConfigErr := c.LoadConfig(); loadConfigErr != nil {
+			return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
+		}
+		dbObj := &DatabaseServiceImpl{
+			fs:        fs,
+			db:        nil,
+			mtx:       nil,
+			wg:        nil,
+			dbCfg:     c.Database,
+			dbChanCtl: nil,
+			dbChanErr: nil,
+			dbChanSig: nil,
+			mdRepo:    nil,
+			dbStats:   sql.DBStats{},
+			lastStats: sql.DBStats{},
+		}
+		if dbErr := dbObj.SetupDatabaseServices(); dbErr != nil {
+			return logz.ErrorLog(fmt.Sprintf("❌ Erro ao configurar banco de dados: %v", dbErr), "GoKubexFS", logz.QUIET)
+		}
+		_ = logz.InfoLog(fmt.Sprintf("✅ Configuração carregada com sucesso!"), "GoKubexFS", logz.QUIET)
+		return nil
+	}
+
+	if c.Logger == nil {
+		c.SetLogger()
+	}
+	if createDirErr := fs.CreateKubexUserStructure(); createDirErr != nil {
+		return createDirErr
+	}
+	_ = fs.SetSetupCacheFlag("kubex_config_structure")
+
+	prvKey, pubKey, crtErr := crt.GenSelfCert()
+	if crtErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar certificado: %v", crtErr), "GoKubexFS", logz.QUIET)
+	}
+	_ = fs.SetSetupCacheFlag("kubex_certificates")
+	redisPass, redisPassErr := crt.GenerateRandomKey(10)
+	if redisPassErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar senha: %v", redisPassErr), "GoKubexFS", logz.QUIET)
+	}
+	_ = fs.SetSetupCacheFlag("kubex_redis_password")
+	refreshSecret, refreshSecretErr := crt.GenerateRandomKey(10)
+	if refreshSecretErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar chave de atualização: %v", refreshSecretErr), "GoKubexFS", logz.QUIET)
+	}
+	_ = fs.SetSetupCacheFlag("kubex_refresh_secret")
+	password, passwordErr := crt.GenerateRandomKey(10)
+	if passwordErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar senha: %v", passwordErr), "GoKubexFS", logz.QUIET)
+	}
+	_ = fs.SetSetupCacheFlag("kubex_db_password")
+
+	if c.FilePath == "" {
+		fs := NewFileSystemService(c.FilePath)
+		c.FilePath = fs.GetConfigFilePath()
+	}
+
+	newC := &ConfigServiceImpl{
+		Server: Server{
+			Port:         "8000",
+			BindAddress:  "0.0.0.0",
+			ReadTimeout:  10,
+			WriteTimeout: 10,
+		},
+		Database: Database{
+			Type:             "postgresql",
+			Driver:           "postgres",
+			ConnectionString: fmt.Sprintf("postgres://kubex_adm:%s@localhost:5432/kubex_db", password),
+			Dsn:              fmt.Sprintf("postgres://kubex_adm:%s@localhost:5432/kubex_db", password),
+			Path:             os.ExpandEnv(`$HOME/.kubex/volumes/postgresql`),
+			Host:             "localhost",
+			Port:             "5432",
+			Username:         "kubex_adm",
+			Password:         password,
+			Name:             "kubex_db",
+		},
+		JWT: JWT{
+			RefreshSecret:         refreshSecret,
+			PrivateKey:            base64.StdEncoding.EncodeToString(prvKey),
+			PublicKey:             base64.StdEncoding.EncodeToString(pubKey),
+			ExpiresIn:             3600,
+			IDExpirationSecs:      3600,
+			RefreshExpirationSecs: 86400,
+		},
+		Redis: Redis{
+			Enabled:  true,
+			Addr:     "localhost:6379",
+			Username: "kubex_adm",
+			Password: redisPass,
+			DB:       0,
+		},
+		RabbitMQ: RabbitMQ{
+			Enabled:        true,
+			Username:       "guest",
+			Password:       "guest",
+			Port:           5672,
+			ManagementPort: 15672,
+		},
+	}
+	c.Server = newC.Server
+	c.Database = newC.Database
+	c.JWT = newC.JWT
+	c.Redis = newC.Redis
+	c.RabbitMQ = newC.RabbitMQ
+
+	saveCfgErr := c.SaveConfig()
+	if saveCfgErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao salvar configuração: %v", saveCfgErr), "GoKubexFS", logz.QUIET)
+	}
+	_ = c.genCacheFlag("kubex_config_structure")
+
+	saveCfgHashErr := c.saveMD5Hash()
+	if saveCfgHashErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao salvar hash de configuração: %v", saveCfgHashErr), "GoKubexFS", logz.QUIET)
+	}
+
+	loadConfigErr := c.LoadConfig()
+	if loadConfigErr != nil {
+		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
 	}
 
 	return nil
