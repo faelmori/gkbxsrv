@@ -40,7 +40,7 @@ type DatabaseService interface {
 	ConnectDB() error
 	GetDB() (*gorm.DB, error)
 	CloseDBConnection() error
-	ServiceHandler(dbChanData <-chan interface{})
+	ServiceHandler() chan interface{}
 	Reconnect() error
 	IsConnected() error
 	GetHost() (string, error)
@@ -549,7 +549,7 @@ func (d *DatabaseServiceImpl) SetConnection(db *gorm.DB) {
 	}
 }
 
-func (d *DatabaseServiceImpl) ServiceHandler(dbChanData <-chan interface{}) {
+func (d *DatabaseServiceImpl) ServiceHandler() chan interface{} {
 	d.loadViperConfig()
 	for {
 		_ = logz.InfoLog(fmt.Sprintf("🔁 Aguardando dados do canal..."), "GoKubexFS", logz.QUIET)
