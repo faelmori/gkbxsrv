@@ -18,6 +18,7 @@ import (
 	"hash"
 	"io"
 	"os"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"strings"
@@ -216,6 +217,81 @@ func DecompressData(data string) (string, error) {
 		return "", err
 	}
 	return string(result), nil
+}
+
+func CompressFolder(folderPath string, outputPath string, compressType string) error {
+	if compressType == "zip" {
+		return compressFolderToZip(folderPath, outputPath)
+	} else if compressType == "tar" {
+		return compressFolderToTar(folderPath, outputPath)
+	} else {
+		return fmt.Errorf("tipo de compressão não suportado")
+	}
+}
+func compressFolderToZip(folderPath string, outputPath string) error {
+	compressCmd := fmt.Sprintf("zip -r %s %s -9", outputPath, folderPath)
+	cmd := exec.Command("sh", "-c", compressCmd)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func compressFolderToTar(folderPath string, outputPath string) error {
+	compressCmd := fmt.Sprintf("tar -czf %s %s", outputPath, folderPath)
+	cmd := exec.Command("sh", "-c", compressCmd)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DecompressFolder(folderPath string, outputPath string) error {
+	detectedType, detectedTypeErr := detectCompressType(folderPath)
+	if detectedTypeErr != nil {
+		return detectedTypeErr
+	}
+	if detectedType == "zip" {
+		return decompressFolderFromZip(folderPath, outputPath)
+	} else if detectedType == "tar" {
+		return decompressFolderFromTar(folderPath, outputPath)
+	} else {
+		return fmt.Errorf("tipo de compressão não suportado")
+	}
+}
+func detectCompressType(folderPath string) (string, error) {
+	cmdFile := fmt.Sprintf("file %s", folderPath)
+	cmd := exec.Command("sh", "-c", cmdFile)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(string(output), "Zip archive data") {
+		return "zip", nil
+	} else if strings.Contains(string(output), "gzip compressed data") {
+		return "tar", nil
+	} else {
+		return "", fmt.Errorf("tipo de compressão não suportado")
+	}
+}
+func decompressFolderFromZip(folderPath string, outputPath string) error {
+	decompressCmd := fmt.Sprintf("unzip %s -d %s", folderPath, outputPath)
+	cmd := exec.Command("sh", "-c", decompressCmd)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func decompressFolderFromTar(folderPath string, outputPath string) error {
+	decompressCmd := fmt.Sprintf("tar -xzf %s -C %s", folderPath, outputPath)
+	cmd := exec.Command("sh", "-c", decompressCmd)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // EncodeData codifica dados em Base64

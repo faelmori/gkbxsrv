@@ -79,10 +79,10 @@ func (m *Utilz) Command() *cobra.Command {
 
 	// Comando data
 	dataCmd := &cobra.Command{
-		Use:     "data",
-		Aliases: []string{"d"},
-		Short:   "Gerencia dados",
-		Long:    "Gerencia dados (strings, slices, maps, arrays, structs, pointers)",
+		Use:         "data",
+		Aliases:     []string{"d"},
+		Short:       "Data module",
+		Annotations: m.getDescriptions([]string{"Data module is a set of tools to help you manage data structures.", "Data module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -93,10 +93,10 @@ func (m *Utilz) Command() *cobra.Command {
 
 	// Comando path
 	pathsCmd := &cobra.Command{
-		Use:     "fs",
-		Aliases: []string{"fileSystem", "path", "pth"},
-		Short:   "Gerencia caminhos de arquivos e diretórios",
-		Long:    "Gerencia caminhos de arquivos e diretórios (sanitização, garantia, obtenção)",
+		Use:         "fs",
+		Aliases:     []string{"fileSystem", "path", "pth"},
+		Short:       "Paths module",
+		Annotations: m.getDescriptions([]string{"Paths module is a set of tools to help you manage file paths.", "Paths module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -107,10 +107,10 @@ func (m *Utilz) Command() *cobra.Command {
 
 	// Comando users
 	usersCmd := &cobra.Command{
-		Use:     "users",
-		Aliases: []string{"u"},
-		Short:   "Gerencia usuários",
-		Long:    "Gerencia usuários (criação, remoção, listagem)",
+		Use:         "users",
+		Aliases:     []string{"u"},
+		Short:       "Users module",
+		Annotations: m.getDescriptions([]string{"Users module is a set of tools to help you manage users.", "Users module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -121,10 +121,10 @@ func (m *Utilz) Command() *cobra.Command {
 
 	// Comando ports
 	portsCmd := &cobra.Command{
-		Use:     "ports",
-		Aliases: []string{"p"},
-		Short:   "Gerencia portas",
-		Long:    "Gerencia portas (abertura, fechamento, listagem)",
+		Use:         "ports",
+		Aliases:     []string{"p"},
+		Short:       "Ports module",
+		Annotations: m.getDescriptions([]string{"Ports module is a set of tools to help you manage ports.", "Ports module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -135,10 +135,10 @@ func (m *Utilz) Command() *cobra.Command {
 
 	// Comando ssh
 	sshCmd := &cobra.Command{
-		Use:     "ssh",
-		Aliases: []string{"s"},
-		Short:   "Gerencia conexões SSH",
-		Long:    "Gerencia conexões SSH (túneis, conexões, chaves)",
+		Use:         "ssh",
+		Aliases:     []string{"s"},
+		Short:       "SSH module",
+		Annotations: m.getDescriptions([]string{"SSH module is a set of tools to help you manage SSH connections.", "SSH module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -149,10 +149,10 @@ func (m *Utilz) Command() *cobra.Command {
 
 	// Comando term
 	termCmd := &cobra.Command{
-		Use:     "term",
-		Aliases: []string{"t"},
-		Short:   "Gerencia terminais",
-		Long:    "Gerencia terminais (figlet, cores, tamanhos)",
+		Use:         "term",
+		Aliases:     []string{"t"},
+		Short:       "Term module",
+		Annotations: m.getDescriptions([]string{"Term module is a set of tools to help you manage terminal sessions.", "Term module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -160,6 +160,19 @@ func (m *Utilz) Command() *cobra.Command {
 	termCmdList := cli.TermCmdsList()
 	termCmd.AddCommand(termCmdList...)
 	cmd.AddCommand(termCmd)
+
+	// Comando utils
+	utilsCmd := &cobra.Command{
+		Use:         "utils",
+		Aliases:     []string{"u"},
+		Short:       "Utilities module",
+		Annotations: m.getDescriptions([]string{"Utilities module is a set of tools to help you with your daily tasks.", "Utilities module"}, false),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("you must specify a subcommand")
+		},
+	}
+	utilsCmd.AddCommand(cli.UtilsCmdsList()...)
+	cmd.AddCommand(utilsCmd)
 
 	for _, c := range cmd.Commands() {
 		setUsageDefinition(c)
@@ -170,7 +183,7 @@ func (m *Utilz) Command() *cobra.Command {
 	return cmd
 }
 
-func (m *Utilz) getDescriptions(descriptionArg []string, _ bool) map[string]string {
+func (m *Utilz) getDescriptions(descriptionArg []string, hideBanner bool) map[string]string {
 	var description, banner string
 	if descriptionArg != nil {
 		if strings.Contains(strings.Join(os.Args[0:], ""), "-h") {
@@ -185,34 +198,33 @@ func (m *Utilz) getDescriptions(descriptionArg []string, _ bool) map[string]stri
 			description = m.ShortDescription()
 		}
 	}
-	//if !hideBanner {
-	banner = `   ______      __ __      __              ___________
+	if !hideBanner {
+		banner = `   ______      __ __      __              ___________
   / ____/___  / //_/_  __/ /_  ___  _  __/ ____/ ___/
  / / __/ __ \/ ,< / / / / __ \/ _ \| |/_/ /_   \__ \ 
 / /_/ / /_/ / /| / /_/ / /_/ /  __/>  </ __/  ___/ / 
 \____/\____/_/ |_\__,_/_.___/\___/_/|_/_/    /____/
 `
-	//} else {
-	//banner = ""
-	//}
+	} else {
+		banner = ""
+	}
 	return map[string]string{"banner": banner, "description": description}
 }
 
 func (m *Utilz) utilzCmdsList() ([]*cobra.Command, error) {
-	cmdUtilz := utilzCmd(m)
+	//cmdUtilz := utilzCmd(m)
 
 	return []*cobra.Command{
-		cmdUtilz,
+		//cmdUtilz,
 	}, nil
 }
 
 func (m *Utilz) utilzCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "utils",
-		Aliases: []string{m.Alias(), "util", "utl", "u"},
-		Example: m.concatenateExamples(),
-		Short:   "Utilities module",
-		Long:    "Utilities module is a set of tools to help you with your daily tasks.",
+		Use:         "utils",
+		Aliases:     []string{m.Alias(), "util", "utl", "u"},
+		Example:     m.concatenateExamples(),
+		Annotations: m.getDescriptions([]string{m.LongDescription(), m.ShortDescription()}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Verifica e executa as flags
 			cmdFlag, _ := cmd.Flags().GetString("cmd")
@@ -255,10 +267,9 @@ func (m *Utilz) utilzCmd() *cobra.Command {
 
 func utilzCmd(m *Utilz) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     m.Module(),
-		Aliases: []string{"util", "utils"},
-		Short:   m.ShortDescription(),
-		Long:    m.LongDescription(),
+		Use:         m.Module(),
+		Aliases:     []string{"util", "utils"},
+		Annotations: m.getDescriptions([]string{m.LongDescription(), m.ShortDescription()}, os.Getenv("KBX_HIDE_BANNER") == "true"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
