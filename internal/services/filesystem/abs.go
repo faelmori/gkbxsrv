@@ -73,8 +73,6 @@ type FileSystemServiceImpl struct {
 	certPath       string
 }
 
-// Private Methods
-
 func (f *FileSystemServiceImpl) SanitizePath(parts ...string) string {
 	var cleanedParts = make([]string, 0)
 	for _, p := range parts {
@@ -83,7 +81,6 @@ func (f *FileSystemServiceImpl) SanitizePath(parts ...string) string {
 	fullPath := strings.Join(cleanedParts, string(filepath.Separator))
 	return fullPath
 }
-
 func (f *FileSystemServiceImpl) CheckSetupCacheFlag(setupFlag string) bool {
 	if realSetupFlag, ok := setupFlagsMap[setupFlag]; ok {
 		setupFlag = realSetupFlag
@@ -133,9 +130,6 @@ func (f *FileSystemServiceImpl) kubexDefaultDirs() ([]string, error) {
 	}
 	return dirs, nil
 }
-
-// Public Methods
-
 func (f *FileSystemServiceImpl) ExistsKubexDirs() (map[string]bool, error) {
 	dirs, dirsErr := f.kubexDefaultDirs()
 	if dirsErr != nil {
@@ -197,7 +191,6 @@ func (f *FileSystemServiceImpl) CreateKubexUserStructure() error {
 	fmt.Println("✅ Estrutura de diretórios criada!")
 	return nil
 }
-
 func (f *FileSystemServiceImpl) GetFromFile(filePathArg string, fileType *string, data interface{}) (object interface{}, err error) {
 	filePath := f.SanitizePath(filePathArg)
 	if _, statErr := os.Stat(filePath); os.IsNotExist(statErr) {
@@ -256,9 +249,6 @@ func (f *FileSystemServiceImpl) WriteToFile(filePathArg string, data interface{}
 	}
 	return nil
 }
-
-// Public Getters
-
 func (f *FileSystemServiceImpl) GetConfigFilePath() string           { return f.configFilePath }
 func (f *FileSystemServiceImpl) GetDefaultCacheDir() string          { return f.cacheDir }
 func (f *FileSystemServiceImpl) GetDefaultRedisVolumeDir() string    { return f.redisVolume }
