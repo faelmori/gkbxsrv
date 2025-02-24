@@ -1,13 +1,13 @@
 package services
 
 import (
-	. "github.com/faelmori/gokubexfs/internal/services/filesystem"
+	fsys "github.com/faelmori/gokubexfs/internal/services"
 )
 
-type FilesystemService interface{ FileSystemService }
+type FilesystemService interface{ fsys.FileSystemService }
 
 func NewFileSystemService(configFile string) *FilesystemService {
-	srv := NewFileSystemSrv(configFile)
+	srv := fsys.NewFileSystemSrv(configFile)
 	srvB := srv.(FilesystemService)
 	return &srvB
 }
