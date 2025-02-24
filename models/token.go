@@ -13,7 +13,11 @@ func NewTokenRepo(db *gorm.DB) *TokenRepo { return &TokenRepo{imodels.NewTokenRe
 func NewTokenService(config *imodels.TSConfig) *TokenService {
 	return &TokenService{imodels.NewTokenService(config)}
 }
+func LoadTokenCfg(db *gorm.DB) (imodels.TokenService, int64, int64, error) {
+	nt := NewTokenRepo(db)
+	ts := NewTokenService(&imodels.TSConfig{TokenRepository: nt})
+	idExpirationSecs := int64(0)
+	refExpirationSecs := int64(0)
 
-func LoadTokenCfg(db *gorm.DB) (*imodels.TokenService, int64, int64, error) {
-	return imodels
+	return ts, idExpirationSecs, refExpirationSecs, nil
 }
