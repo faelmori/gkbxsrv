@@ -4,11 +4,12 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
+	"log"
+	"sync"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pebbe/zmq4"
 	"github.com/spf13/viper"
-	"log"
-	"sync"
 )
 
 const brokerEndpoint = "tcp://*:5555"
@@ -24,6 +25,7 @@ type BrokerImpl struct {
 	pub     *zmq4.Socket
 	sub     *zmq4.Socket
 	router  *zmq4.Socket
+	serverCfg *ConfigServiceImpl
 }
 
 var brokerInstance *BrokerImpl
@@ -57,7 +59,6 @@ func StartBroker() {
 		go brokerInstance.HandleSub()
 	})
 }
-
 func (b *BrokerImpl) HandleRouter() {
 	for {
 		identity, err := b.router.Recv(0)
@@ -98,11 +99,15 @@ func (b *BrokerImpl) HandleSub() {
 	}
 }
 
-func NewBroker() *BrokerImpl {
+func NewBroker(cfg ConfigService) *BrokerImpl {
 	if brokerInstance == nil {
 		StartBroker()
 	}
 	return brokerInstance
+}
+
+func checkBroker() {
+	
 }
 
 func ConnectToBroker() (*zmq4.Socket, error) {
