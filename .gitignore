@@ -166,3 +166,4 @@ npm/
 /.idea/vcs.xml
 /.idea/workspace.xml
 
+/go.sum
