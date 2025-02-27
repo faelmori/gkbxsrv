@@ -1,7 +1,7 @@
 package services
 
 import (
-	cfgs "github.com/faelmori/gokubexfs/internal/services"
+	cfgs "github.com/faelmori/gkbxsrv/internal/services"
 )
 
 type ConfigService = cfgs.IConfigService

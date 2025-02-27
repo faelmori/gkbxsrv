@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/faelmori/gokubexfs/internal/utils/helpers"
+	"github.com/faelmori/gkbxsrv/internal/utils/helpers"
 	"github.com/spf13/cobra"
 )
 

@@ -5,9 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	glb "github.com/faelmori/gokubexfs/internal/globals"
-	"github.com/faelmori/kbx/mods/logz"
-	"github.com/faelmori/kbx/mods/utils"
+	glb "github.com/faelmori/gkbxsrv/internal/globals"
+	"github.com/faelmori/gkbxsrv/utils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"io"
@@ -226,7 +225,6 @@ func (c *ConfigServiceImpl) LoadConfig() error {
 	if c.Logger == nil {
 		c.SetLogger()
 	}
-	_ = logz.DebugLog(fmt.Sprintf("🔍 Carregando configuração de: '%s'", c.FilePath), "GoKubexFS", logz.QUIET)
 	viper.SetConfigFile(c.FilePath)
 	viper.AutomaticEnv()
 	if readConfigErr := viper.ReadInConfig(); readConfigErr != nil {
@@ -240,14 +238,13 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 
 	if blKeepCfg, blKeepCfgErr := c.compareMD5Hash(); blKeepCfg && blKeepCfgErr == nil {
 		if loadConfigErr := c.LoadConfig(); loadConfigErr != nil {
-			return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
+			return loadConfigErr
 		}
 		dckr := NewDockerSrv()
 
 		if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
-			return logz.ErrorLog(fmt.Sprintf("❌ Erro ao configurar banco de dados: %v", dbErr), "GoKubexFS", logz.QUIET)
+			return dbErr
 		}
-		_ = logz.InfoLog(fmt.Sprintf("✅ Configuração carregada com sucesso!"), "GoKubexFS", logz.QUIET)
 		return nil
 	}
 
@@ -261,22 +258,22 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 
 	prvKey, pubKey, crtErr := crt.GenSelfCert()
 	if crtErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar certificado: %v", crtErr), "GoKubexFS", logz.QUIET)
+		return crtErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_certificates")
 	redisPass, redisPassErr := crt.GenerateRandomKey(10)
 	if redisPassErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar senha: %v", redisPassErr), "GoKubexFS", logz.QUIET)
+		return redisPassErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_redis_password")
 	refreshSecret, refreshSecretErr := crt.GenerateRandomKey(10)
 	if refreshSecretErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar chave de atualização: %v", refreshSecretErr), "GoKubexFS", logz.QUIET)
+		return refreshSecretErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_refresh_secret")
 	password, passwordErr := crt.GenerateRandomKey(10)
 	if passwordErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar senha: %v", passwordErr), "GoKubexFS", logz.QUIET)
+		return passwordErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_db_password")
 
@@ -336,22 +333,22 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 
 	saveCfgErr := c.SaveConfig()
 	if saveCfgErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao salvar configuração: %v", saveCfgErr), "GoKubexFS", logz.QUIET)
+		return saveCfgErr
 	}
 	_ = c.genCacheFlag("kubex_config_structure")
 
 	saveCfgHashErr := c.saveMD5Hash()
 	if saveCfgHashErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao salvar hash de configuração: %v", saveCfgHashErr), "GoKubexFS", logz.QUIET)
+		return saveCfgHashErr
 	}
 
 	loadConfigErr := c.LoadConfig()
 	if loadConfigErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
+		return loadConfigErr
 	}
 
 	if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao configurar banco de dados: %v", dbErr), "GoKubexFS", logz.QUIET)
+		return dbErr
 	}
 
 	return nil
@@ -360,12 +357,11 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
 	if blKeepCfg, blKeepCfgErr := c.compareMD5Hash(); blKeepCfg && blKeepCfgErr == nil {
 		if loadConfigErr := c.LoadConfig(); loadConfigErr != nil {
-			return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
+			return loadConfigErr
 		}
 		if dbErr := NewDockerSrv().SetupDatabaseServices(); dbErr != nil {
-			return logz.ErrorLog(fmt.Sprintf("❌ Erro ao configurar banco de dados: %v", dbErr), "GoKubexFS", logz.QUIET)
+			return dbErr
 		}
-		_ = logz.InfoLog(fmt.Sprintf("✅ Configuração carregada com sucesso!"), "GoKubexFS", logz.QUIET)
 		return nil
 	}
 
@@ -379,22 +375,22 @@ func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
 
 	prvKey, pubKey, crtErr := crt.GenSelfCert()
 	if crtErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar certificado: %v", crtErr), "GoKubexFS", logz.QUIET)
+		return crtErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_certificates")
 	redisPass, redisPassErr := crt.GenerateRandomKey(10)
 	if redisPassErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar senha: %v", redisPassErr), "GoKubexFS", logz.QUIET)
+		return redisPassErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_redis_password")
 	refreshSecret, refreshSecretErr := crt.GenerateRandomKey(10)
 	if refreshSecretErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar chave de atualização: %v", refreshSecretErr), "GoKubexFS", logz.QUIET)
+		return refreshSecretErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_refresh_secret")
 	password, passwordErr := crt.GenerateRandomKey(10)
 	if passwordErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao gerar senha: %v", passwordErr), "GoKubexFS", logz.QUIET)
+		return passwordErr
 	}
 	_ = Fs.SetSetupCacheFlag("kubex_db_password")
 
@@ -454,31 +450,26 @@ func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
 
 	saveCfgErr := c.SaveConfig()
 	if saveCfgErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao salvar configuração: %v", saveCfgErr), "GoKubexFS", logz.QUIET)
+		return saveCfgErr
 	}
 	_ = c.genCacheFlag("kubex_config_structure")
 
 	saveCfgHashErr := c.saveMD5Hash()
 	if saveCfgHashErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao salvar hash de configuração: %v", saveCfgHashErr), "GoKubexFS", logz.QUIET)
+		return saveCfgHashErr
 	}
 
 	loadConfigErr := c.LoadConfig()
 	if loadConfigErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("❌ Erro ao carregar configuração: %v", loadConfigErr), "GoKubexFS", logz.QUIET)
+		return loadConfigErr
 	}
-
-	logz.InfoLog(fmt.Sprintf("✅ Configuração carregada com sucesso!"), "GoKubexFS", logz.QUIET)
-	logz.InfoLog(fmt.Sprintf("🔍 ConfigFile: '%s'", c.FilePath), "GoKubexFS")
-
 	return nil
 }
 
 func NewConfigSrv(configPath, keyPath, certPath string) IConfigService {
 	home, homeErr := utils.GetWorkDir()
 	if homeErr != nil {
-		//_ = logz.ErrorLog(homeErr.Error(), "CertService")
-		_ = logz.ErrorLog(fmt.Sprintf(homeErr.Error()), "GoKubexFS", logz.QUIET)
+		fmt.Println("❌ Erro ao obter diretório de trabalho: ", homeErr)
 		os.Exit(1)
 	}
 	home = filepath.Dir(filepath.Dir(home))

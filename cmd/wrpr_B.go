@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/faelmori/gokubexfs/cmd/cli"
+	"github.com/faelmori/gkbxsrv/cmd/cli"
 	"github.com/spf13/cobra"
 	"os"
 	"reflect"

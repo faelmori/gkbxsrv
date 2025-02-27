@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"github.com/faelmori/gokubexfs/internal/utils"
+	"github.com/faelmori/gkbxsrv/internal/utils"
 	"github.com/spf13/cobra"
 	"os"
 	"strconv"

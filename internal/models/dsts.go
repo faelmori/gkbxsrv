@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"github.com/faelmori/kbx/mods/logz"
+	//"github.com/faelmori/logz"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -128,12 +128,12 @@ func (u *userImpl) SetPassword(password string) (string, error) {
 }
 func (u *userImpl) CheckPasswordHash(password string) bool {
 	if password == "" {
-		_ = logz.WarnLog("userImpl: password is empty", "GDBase")
+		//_ = logz.WarnLog("userImpl: password is empty", "GDBase")
 		return false
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
-		_ = logz.DebugLog(fmt.Sprintf("Password check error: %s", err), "GDBase")
+		//_ = logz.DebugLog(fmt.Sprintf("Password check error: %s", err), "GDBase")
 	}
 	return err == nil
 }

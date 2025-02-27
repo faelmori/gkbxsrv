@@ -1,7 +1,7 @@
 package services
 
 import (
-	cert "github.com/faelmori/gokubexfs/internal/services"
+	cert "github.com/faelmori/gkbxsrv/internal/services"
 )
 
 type CertService = cert.ICertService

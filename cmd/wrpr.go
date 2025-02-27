@@ -2,10 +2,10 @@ package cmd
 
 //import (
 //	"fmt"
-//	"github.com/faelmori/gokubexfs/cmd/cli"
-//	"github.com/faelmori/gokubexfs/services"
-//	databases "github.com/faelmori/gokubexfs/services"
-//	"github.com/faelmori/kbx/mods/logz"
+//	"github.com/faelmori/gkbxsrv/cmd/cli"
+//	"github.com/faelmori/gkbxsrv/services"
+//	databases "github.com/faelmori/gkbxsrv/services"
+//	"github.com/faelmori/logz"
 //	"github.com/spf13/cobra"
 //	"os"
 //	"strings"
@@ -32,8 +32,8 @@ package cmd
 //}
 //func (m *GDBase) Examples() []string {
 //	return []string{
-//		"kbx gokubexfs auth --username=foo --password=bar --host=localhost --port=5432 --database=kubex_db",
-//		"kbx gokubexfs user add-user --username='foo' --password='bar' --name='Foo' --email='foo@bar.com'",
+//		"kbx gkbxsrv auth --username=foo --password=bar --host=localhost --port=5432 --database=kubex_db",
+//		"kbx gkbxsrv user add-user --username='foo' --password='bar' --name='Foo' --email='foo@bar.com'",
 //	}
 //}
 //func (m *GDBase) Active() bool {
@@ -52,7 +52,7 @@ package cmd
 //
 //	cmd := &cobra.Command{
 //		Use:         m.Module(),
-//		Aliases:     []string{m.Alias(), "db", "sql", "gokubexfs", "database"},
+//		Aliases:     []string{m.Alias(), "db", "sql", "gkbxsrv", "database"},
 //		Example:     m.concatenateExamples(),
 //		Annotations: m.getDescriptions(nil, true),
 //		RunE: func(cmd *cobra.Command, args []string) error {

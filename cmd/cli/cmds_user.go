@@ -2,15 +2,13 @@ package cli
 
 import (
 	"fmt"
-	"github.com/faelmori/gokubexfs/internal/models/forms"
-	. "github.com/faelmori/gokubexfs/models"
-	"github.com/faelmori/gokubexfs/services"
-	databases "github.com/faelmori/gokubexfs/services"
-	"github.com/faelmori/kbx/mods/logz"
-
-	. "github.com/faelmori/kbx/mods/ui/components"
-	"github.com/faelmori/kbx/mods/ui/types"
-	"github.com/faelmori/kbx/mods/utils"
+	//"github.com/faelmori/gkbxsrv/internal/models/forms"
+	. "github.com/faelmori/gkbxsrv/models"
+	"github.com/faelmori/gkbxsrv/services"
+	databases "github.com/faelmori/gkbxsrv/services"
+	//"github.com/faelmori/gkbxsrv/utils"
+	//. "github.com/faelmori/kbx/mods/ui/components"
+	//"github.com/faelmori/kbx/mods/ui/types"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +18,7 @@ func UserRootCommand() *cobra.Command {
 		Aliases:     []string{"users", "u", "usr"},
 		Annotations: getDescriptions([]string{"User commands for the gospyder module.", "User commands"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return logz.ErrorLog("No command specified for users.", "gospyder")
+			return fmt.Errorf("no command specified for users")
 		},
 	}
 
@@ -51,17 +49,14 @@ func insertUserCommand() *cobra.Command {
 			gDBRepoConn, gDBRepoConnErr := gDBRepo.OpenDB()
 			dbB := *gDBRepoConn
 			if gDBRepoConnErr != nil {
-				return logz.ErrorLog(fmt.Sprintf("Failed to initialize the database: %s", gDBRepoConnErr.Error()), "GDBase")
-			} else {
-				_ = logz.InfoLog(fmt.Sprintf("Database initialized: %s", dbB.Name()), "GDBase")
+				return fmt.Errorf(fmt.Sprintf("Failed to initialize the database: %s", gDBRepoConnErr.Error()))
 			}
 			userR := NewUserRepo(&dbB)
 			userRepo := *userR
 
 			var user *User
-			if username == "" || email == "" || password == "" || name == "" {
+			/*if username == "" || email == "" || password == "" || name == "" {
 				utils.ClearScreen()
-				_ = logz.InfoLog("No user data provided, starting wizard...", "GDBase")
 				userForm := forms.NewUserForm()
 				userFields := userForm.GetFields(userDataMapStr)
 				kbdzInputsData, kbdzInputsErr := KbdzInputs(
@@ -80,50 +75,49 @@ func insertUserCommand() *cobra.Command {
 					userMap[key] = val
 				}
 				user = UserFactory(userMap)
+			} else {*/
+			if len(userDataMap) > 0 {
+				userMap = userDataMap
 			} else {
-				if len(userDataMap) > 0 {
-					userMap = userDataMap
-				} else {
-					userMap = map[string]any{
-						"username": username,
-						"email":    email,
-						"password": password,
-						"name":     name,
-						"roles":    role,
-						"phone":    phone,
-						"document": document,
-						"address":  address,
-						"city":     city,
-						"state":    state,
-						"country":  country,
-						"zip":      zip,
-						"avatar":   avatar,
-						"birth":    birth,
-					}
+				userMap = map[string]any{
+					"username": username,
+					"email":    email,
+					"password": password,
+					"name":     name,
+					"roles":    role,
+					"phone":    phone,
+					"document": document,
+					"address":  address,
+					"city":     city,
+					"state":    state,
+					"country":  country,
+					"zip":      zip,
+					"avatar":   avatar,
+					"birth":    birth,
 				}
-				user = UserFactory(userMap)
 			}
+			user = UserFactory(userMap)
+			//}
 
 			if validateErr := user.Validate(); validateErr != nil {
-				return logz.ErrorLog(fmt.Sprintf("Failed to validate user: %s", validateErr.Error()), "GDBase")
+				return validateErr
 			}
 
 			dckr := services.NewDockerService()
 			if dckr.IsDockerRunning() {
 				if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
-					return logz.ErrorLog(fmt.Sprintf("Failed to setup database services: %s", dbErr.Error()), "GDBase")
+					return dbErr
 				}
 			}
 			if createdUser, createdUserErr := userRepo.Create(user); createdUserErr != nil || createdUser == nil {
-				return logz.ErrorLog(fmt.Sprintf("Failed to create user: %s", createdUserErr.Error()), "GDBase")
+				return createdUserErr
 			} else {
-				_ = logz.InfoLog(fmt.Sprintf("User created: %s", createdUser.GetID()), "GDBase")
 				if outputTarget != "" {
 					fsSrv := services.NewFileSystemService(configFile)
 					fs := *fsSrv
 					writeErr := fs.WriteToFile(outputTarget, createdUser, &outputType)
 					if writeErr != nil {
-						return logz.ErrorLog(fmt.Sprintf("Failed to write user to file: %s", writeErr.Error()), "GDBase")
+						return writeErr
 					}
 				}
 			}
@@ -152,16 +146,16 @@ func insertUserCommand() *cobra.Command {
 	insertUserCmd.Flags().BoolP("quiet", "q", false, "Quiet mode")
 
 	if markHiddenErr := insertUserCmd.Flags().MarkHidden("quiet"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf("Error marking flag as hidden: %v", markHiddenErr)
 	}
 	if markHiddenErr := insertUserCmd.Flags().MarkHidden("role"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr))
 	}
 	if markHiddenErr := insertUserCmd.Flags().MarkHidden("avatar"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr))
 	}
 	if markHiddenErr := insertUserCmd.Flags().MarkHidden("data"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf("Error marking flag as hidden: %v", markHiddenErr)
 	}
 
 	return insertUserCmd
@@ -178,26 +172,27 @@ func viewUserCommand() *cobra.Command {
 			dckr := services.NewDockerService()
 			if dckr.IsDockerRunning() {
 				if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
-					return logz.ErrorLog(fmt.Sprintf("Failed to setup database services: %s", dbErr.Error()), "GDBase")
+					return dbErr
 				}
 			}
 			gDBRepo := databases.NewDatabaseService(configFile)
 			gDBRepoConn, gDBRepoConnErr := gDBRepo.OpenDB()
 			if gDBRepoConnErr != nil {
-				return logz.ErrorLog(fmt.Sprintf("Failed to initialize the database: %s", gDBRepoConnErr.Error()), "GDBase")
+				return gDBRepoConnErr
 			}
 			userRepo := NewUserRepo(gDBRepoConn)
 			if userRepo != nil {
 				if users, usersErr := userRepo.List(where); usersErr != nil {
-					return logz.ErrorLog(fmt.Sprintf("Failed to find users: %s", usersErr.Error()), "GDBase")
+					return usersErr
 				} else {
 					if len(users.GetRows()) < 1 {
-						return logz.ErrorLog(fmt.Sprintf("No users found with selected criteria (%p): %s", where, usersErr.Error()), "GDBase")
+						return fmt.Errorf("no users found")
 					}
-					return StartTableScreen(&users, nil)
+					//return StartTableScreen(&users, nil)
+					return nil
 				}
 			} else {
-				return logz.ErrorLog("Failed to get user repository", "GDBase")
+				return fmt.Errorf("failed to initialize the user repository")
 			}
 		},
 	}

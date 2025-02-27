@@ -2,14 +2,15 @@ package cli
 
 import (
 	"fmt"
-	databases "github.com/faelmori/gokubexfs/services"
-	"github.com/faelmori/kbx/mods/logz"
-	. "github.com/faelmori/kbx/mods/ui/components"
-	"github.com/faelmori/kbx/mods/ui/types"
-	"github.com/faelmori/kbx/mods/utils"
+	databases "github.com/faelmori/gkbxsrv/services"
+	//"github.com/faelmori/gkbxsrv/utils"
+	//"github.com/faelmori/xtui/types"
+
+	//. "github.com/faelmori/kbx/mods/ui/components"
+	//"github.com/faelmori/kbx/mods/ui/types"
 	"github.com/spf13/cobra"
-	"strconv"
-	"strings"
+	//"strconv"
+	//"strings"
 )
 
 func AuthenticationRootCommand(cmd *cobra.Command) *cobra.Command {
@@ -35,7 +36,7 @@ func authenticateUserCommand() *cobra.Command {
 		Aliases:     []string{"authenticate", "login", "signin"},
 		Annotations: getDescriptions([]string{"Authenticate user to database.", "Authenticate user"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if username == "" || password == "" {
+			/*if username == "" || password == "" {
 				dbHost := ""
 				if host != "" {
 					dbHost = host
@@ -55,7 +56,7 @@ func authenticateUserCommand() *cobra.Command {
 						Err: "Database é obrigatório",
 						Vld: func(s string) error {
 							if len(s) < 3 {
-								return logz.ErrorLog(fmt.Sprintf("Database deve ter no mínimo 3 caracteres"), "GDBase")
+								return fmt.Errorf("database deve ter no mínimo 3 caracteres")
 							}
 							return nil
 						},
@@ -71,10 +72,10 @@ func authenticateUserCommand() *cobra.Command {
 						Vld: func(s string) error {
 							p, pErr := strconv.Atoi(s)
 							if pErr != nil {
-								return logz.ErrorLog(fmt.Sprintf("Porta deve ser um número"), "GDBase")
+								return fmt.Errorf("porta deve ser um número")
 							}
 							if p < 100 || p > 65535 {
-								return logz.ErrorLog(fmt.Sprintf("Porta deve estar entre 100 e 65535"), "GDBase")
+								return fmt.Errorf("porta deve ser um número entre 100 e 65535")
 							}
 							return nil
 						},
@@ -116,18 +117,18 @@ func authenticateUserCommand() *cobra.Command {
 						Fds: &fields,
 					})
 					if tuizErr != nil {
-						return logz.ErrorLog(fmt.Sprintf("Failed to get user input: "+tuizErr.Error()), "GDBase")
+						return fmt.Errorf("error getting user input: %v", tuizErr)
 					}
 					username = tuizResult["field0"]
 					password = tuizResult["field2"]
 				} else {
-					return logz.ErrorLog("All fields are required: Username, Email and Password", "GDBase")
+					return fmt.Errorf("username and password are required")
 				}
-			}
+			}*/
 			dbaseObj := databases.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
-				return logz.ErrorLog(fmt.Sprintf("Error connecting to database: %v", dbaseConnErr), "GDBase")
+				return fmt.Errorf("error connecting to database: %v", dbaseConnErr)
 			}
 			return nil
 		},
@@ -147,13 +148,13 @@ func authenticateUserCommand() *cobra.Command {
 	authenticateUserCmd.Flags().StringVarP(&outputTarget, "output-target", "T", "", "The output target for the user")
 
 	if markHiddenErr := authenticateUserCmd.Flags().MarkHidden("quiet"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf("Error marking flag as hidden: %v", markHiddenErr)
 	}
 	if markHiddenErr := authenticateUserCmd.Flags().MarkHidden("path"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf("Error marking flag as hidden: %v", markHiddenErr)
 	}
 	if markHiddenErr := authenticateUserCmd.Flags().MarkHidden("dsn"); markHiddenErr != nil {
-		_ = logz.ErrorLog(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), "GoSpyder")
+		fmt.Printf("Error marking flag as hidden: %v", markHiddenErr)
 	}
 
 	return authenticateUserCmd

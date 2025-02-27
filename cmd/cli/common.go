@@ -2,7 +2,7 @@ package cli
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	. "github.com/faelmori/kbx/mods/ui/wrappers"
+	//. "github.com/faelmori/kbx/mods/ui/wrappers"
 	"os"
 	"strings"
 )
@@ -46,12 +46,13 @@ func RunWithLoader(task func(chan tea.Msg) error) error {
 	go func() {
 		defer close(messages)
 		if err := task(messages); err != nil {
-			messages <- KbdzLoaderMsg{Message: "Error: " + err.Error()}
+			//messages <- KbdzLoaderMsg{Message: "Error: " + err.Error()}
 		}
-		messages <- KbdzLoaderCloseMsg{}
+		//messages <- KbdzLoaderCloseMsg{}
 	}()
 
-	return StartLoader(messages)
+	//return StartLoader(messages)
+	return nil
 }
 
 func getDescriptions(descriptionArg []string, hideBanner bool) map[string]string {

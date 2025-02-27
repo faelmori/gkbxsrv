@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"github.com/faelmori/kbx/mods/logz"
+	//"github.com/faelmori/logz"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -21,7 +21,8 @@ type RoleRepoImpl struct{ *gorm.DB }
 func (g *RoleRepoImpl) Create(u *Role) (*Role, error) {
 	err := g.DB.Create(u).Error
 	if err != nil {
-		return nil, logz.ErrorLog(fmt.Sprintf("RoleImpl repository: failed to create RoleImpl: %v", err), "GDBase")
+		//return nil, logz.ErrorLog(fmt.Sprintf("RoleImpl repository: failed to create RoleImpl: %v", err), "GDBase")
+		return nil, fmt.Errorf("RoleImpl repository: failed to create RoleImpl: %w", err)
 	}
 	return u, nil
 }
@@ -29,7 +30,8 @@ func (g *RoleRepoImpl) FindOne(where ...interface{}) (*Role, error) {
 	var u Role
 	err := g.DB.Where(where[0], where[1:]).First(&u).Error // Use a pointer to u
 	if err != nil {
-		return nil, logz.ErrorLog(fmt.Sprintf("RoleImpl repository: failed to find RoleImpl: %v", err), "GDBase")
+		//return nil, logz.ErrorLog(fmt.Sprintf("RoleImpl repository: failed to find RoleImpl: %v", err), "GDBase")
+		return nil, fmt.Errorf("RoleImpl repository: failed to find RoleImpl: %w", err)
 	}
 	return &u, nil // Return the pointer
 }

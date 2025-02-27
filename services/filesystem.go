@@ -1,7 +1,7 @@
 package services
 
 import (
-	fsys "github.com/faelmori/gokubexfs/internal/services"
+	fsys "github.com/faelmori/gkbxsrv/internal/services"
 )
 
 type FilesystemService interface{ fsys.FileSystemService }

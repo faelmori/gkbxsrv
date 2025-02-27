@@ -1,7 +1,7 @@
 package forms
 
 import (
-	"github.com/faelmori/kbx/mods/ui/types"
+	//"github.com/faelmori/xtui/types"
 	"github.com/go-playground/validator/v10"
 	"sync"
 )
@@ -14,40 +14,42 @@ var (
 
 type UserForm struct{}
 
-func (u *UserForm) GetFields(userData map[string]string) []types.TuizInput {
-	mu.Lock()
-	if len(userData) > 0 {
-		for k, v := range userData {
-			dskCache[k] = v
-		}
-	} else {
-		if len(dskCache) > 0 {
-			for k, v := range dskCache {
-				userData[k] = v
+/*
+	func (u *UserForm) GetFields(userData map[string]string) []types.TuizInput {
+		mu.Lock()
+		if len(userData) > 0 {
+			for k, v := range userData {
+				dskCache[k] = v
 			}
 		} else {
-			dskCache = make(map[string]string)
+			if len(dskCache) > 0 {
+				for k, v := range dskCache {
+					userData[k] = v
+				}
+			} else {
+				dskCache = make(map[string]string)
+			}
+		}
+		mu.Unlock()
+		return []types.TuizInput{
+			createInput("Enter the username", "text", userData["username"], true, 0, 50, "Username must be between 5 and 50 characters", u.validateUsername),
+			createInput("Enter the email", "email", userData["email"], true, 0, 50, "Email must be between 5 and 50 characters", u.validateEmail),
+			createInput("Enter the password", "password", userData["password"], true, 0, 13, "Password must be between 8 and 13 characters, and contain at least one uppercase letter, one lowercase letter, one number, and one special character", u.validatePassword),
+			createInput("Enter the name", "text", userData["name"], true, 0, 50, "Name must be between 5 and 50 characters and contain only letters", u.validateName),
+			createInput("Enter the role", "text", userData["role"], false, 0, 10, "Role must be between 1 and 10 characters", u.validateRole),
+			createInput("Enter the birth", "date", userData["birth"], false, 0, 10, "Birth must be in the format YYYY-MM-DD", u.validateBirth),
+			createInput("Enter the phone", "text", userData["phone"], false, 0, 15, "Phone must be between 10 and 15 characters and contain only numbers", u.validatePhone),
+			createInput("Enter the document", "text", userData["document"], false, 0, 15, "Document must be between 10 and 15 characters and contain only numbers", u.validateDocument),
+			createInput("Enter the address", "text", userData["address"], false, 0, 150, "Address must be between 5 and 150 characters", u.validateAddress),
+			createInput("Enter the city", "text", userData["city"], false, 0, 50, "City must be between 2 and 50 characters", u.validateCity),
+			createInput("Enter the state", "text", userData["state"], false, 0, 50, "State must be between 2 and 50 characters", u.validateState),
+			createInput("Enter the country", "text", userData["country"], false, 0, 50, "Country must be between 2 and 50 characters", u.validateCountry),
+			createInput("Enter the zip code", "text", userData["zip"], false, 0, 10, "Zip code must be between 5 and 10 characters", u.validateZip),
+			createInput("Enter the avatar URL", "url", userData["avatar"], false, 0, 200, "Avatar URL must be between 5 and 200 characters", u.validateURL),
+			createInput("Enter the picture URL", "url", userData["picture"], false, 0, 200, "Picture URL must be between 5 and 200 characters", u.validateURL),
 		}
 	}
-	mu.Unlock()
-	return []types.TuizInput{
-		createInput("Enter the username", "text", userData["username"], true, 0, 50, "Username must be between 5 and 50 characters", u.validateUsername),
-		createInput("Enter the email", "email", userData["email"], true, 0, 50, "Email must be between 5 and 50 characters", u.validateEmail),
-		createInput("Enter the password", "password", userData["password"], true, 0, 13, "Password must be between 8 and 13 characters, and contain at least one uppercase letter, one lowercase letter, one number, and one special character", u.validatePassword),
-		createInput("Enter the name", "text", userData["name"], true, 0, 50, "Name must be between 5 and 50 characters and contain only letters", u.validateName),
-		createInput("Enter the role", "text", userData["role"], false, 0, 10, "Role must be between 1 and 10 characters", u.validateRole),
-		createInput("Enter the birth", "date", userData["birth"], false, 0, 10, "Birth must be in the format YYYY-MM-DD", u.validateBirth),
-		createInput("Enter the phone", "text", userData["phone"], false, 0, 15, "Phone must be between 10 and 15 characters and contain only numbers", u.validatePhone),
-		createInput("Enter the document", "text", userData["document"], false, 0, 15, "Document must be between 10 and 15 characters and contain only numbers", u.validateDocument),
-		createInput("Enter the address", "text", userData["address"], false, 0, 150, "Address must be between 5 and 150 characters", u.validateAddress),
-		createInput("Enter the city", "text", userData["city"], false, 0, 50, "City must be between 2 and 50 characters", u.validateCity),
-		createInput("Enter the state", "text", userData["state"], false, 0, 50, "State must be between 2 and 50 characters", u.validateState),
-		createInput("Enter the country", "text", userData["country"], false, 0, 50, "Country must be between 2 and 50 characters", u.validateCountry),
-		createInput("Enter the zip code", "text", userData["zip"], false, 0, 10, "Zip code must be between 5 and 10 characters", u.validateZip),
-		createInput("Enter the avatar URL", "url", userData["avatar"], false, 0, 200, "Avatar URL must be between 5 and 200 characters", u.validateURL),
-		createInput("Enter the picture URL", "url", userData["picture"], false, 0, 200, "Picture URL must be between 5 and 200 characters", u.validateURL),
-	}
-}
+*/
 func (u *UserForm) validateUsername(usernameVal string) error {
 	//if err := validate.Var(usernameVal, "required,min=5,max=50"); err != nil {
 	//	return fmt.Errorf("username must be between 5 and 50 characters")
@@ -183,7 +185,7 @@ func (u *UserForm) validateURL(urlVal string) error {
 	return nil
 }
 
-func createInput(ph, tp, val string, req bool, min, max int, err string, vld func(string) error) types.TuizInput {
+/*func createInput(ph, tp, val string, req bool, min, max int, err string, vld func(string) error) types.TuizInput {
 	mu.Lock()
 	input := types.TuizInput{
 		Ph:  ph,
@@ -197,7 +199,7 @@ func createInput(ph, tp, val string, req bool, min, max int, err string, vld fun
 	}
 	mu.Unlock()
 	return input
-}
+}*/
 
 func NewUserForm() *UserForm {
 	validate = validator.New()

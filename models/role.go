@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/faelmori/gokubexfs/internal/models"
+	"github.com/faelmori/gkbxsrv/internal/models"
 	"gorm.io/gorm"
 )
 

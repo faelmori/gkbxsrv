@@ -1,7 +1,7 @@
 package services
 
 import (
-	dkrs "github.com/faelmori/gokubexfs/internal/services"
+	dkrs "github.com/faelmori/gkbxsrv/internal/services"
 )
 
 type DockerSrv = dkrs.IDockerSrv

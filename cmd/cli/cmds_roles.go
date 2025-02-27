@@ -2,8 +2,7 @@ package cli
 
 import (
 	"fmt"
-	databases "github.com/faelmori/gokubexfs/services"
-	"github.com/faelmori/kbx/mods/logz"
+	databases "github.com/faelmori/gkbxsrv/services"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +12,7 @@ func RolesRootCommand() *cobra.Command {
 		Aliases:     []string{"role", "r", "rol"},
 		Annotations: getDescriptions([]string{"Role commands for the gospyder module.", "Role commands"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return logz.ErrorLog("No command specified for roles.", "gospyder")
+			return fmt.Errorf("you must specify a subcommand")
 		},
 	}
 
@@ -36,7 +35,7 @@ func insertRoleCommand() *cobra.Command {
 			dbaseObj := databases.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
-				return logz.ErrorLog(fmt.Sprintf("Error connecting to database: %v", dbaseConnErr), "GDBase")
+				return dbaseConnErr
 			}
 
 			return nil

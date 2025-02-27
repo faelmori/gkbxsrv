@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"github.com/faelmori/kbx/mods/logz"
+	//"github.com/faelmori/logz"
 
 	"gorm.io/gorm"
 	"strconv"
@@ -158,7 +158,7 @@ func convertMapToUser(userData map[string]any) User {
 	} else {
 		rlID, roleIdErr := strconv.ParseUint(userData["role_id"].(string), 10, 32)
 		if roleIdErr != nil {
-			_ = logz.WarnLog(fmt.Sprintf("UserImpl factory: failed to convert role_id to int: %v", roleIdErr), "GDBase")
+			//_ = logz.WarnLog(fmt.Sprintf("UserImpl factory: failed to convert role_id to int: %v", roleIdErr), "GDBase")
 			roleId = uint(2)
 		} else {
 			roleId = uint(rlID)

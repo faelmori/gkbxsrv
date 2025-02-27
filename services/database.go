@@ -1,7 +1,7 @@
 package services
 
 import (
-	dbAbs "github.com/faelmori/gokubexfs/internal/services"
+	dbAbs "github.com/faelmori/gkbxsrv/internal/services"
 )
 
 type DatabaseService = dbAbs.IDatabaseService
