@@ -38,7 +38,7 @@ func (g *UserRepoImpl) Create(u User) (User, error) {
 
 	iUser := u.getUserObj()
 
-	err := g.DB.Create(&u).Error
+	err := g.DB.Create(&iUser).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("UserImpl repository: failed to create UserImpl: %w", err)
