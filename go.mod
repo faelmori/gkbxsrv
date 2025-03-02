@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/faelmori/logz v1.0.6
 	github.com/fatih/color v1.18.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/go-playground/validator/v10 v10.25.0
@@ -70,7 +71,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
