@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
+	"github.com/goccy/go-json"
 	"log"
 	"sync"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const brokerEndpoint = "tcp://*:5555"
+const brokerEndpoint = "tcp://0.0.0.0:5555"
 
 var once sync.Once
 
@@ -21,10 +22,10 @@ type Broker interface {
 	HandleSub()
 }
 type BrokerImpl struct {
-	context *zmq4.Context
-	pub     *zmq4.Socket
-	sub     *zmq4.Socket
-	router  *zmq4.Socket
+	context   *zmq4.Context
+	pub       *zmq4.Socket
+	sub       *zmq4.Socket
+	router    *zmq4.Socket
 	serverCfg *ConfigServiceImpl
 }
 
@@ -73,21 +74,24 @@ func (b *BrokerImpl) HandleRouter() {
 			continue
 		}
 
-		log.Printf("Mensagem recebida de [%s]: %s", identity, message)
-
-		// Autenticação
-		if !ValidateJWT(message) {
-			log.Printf("Mensagem rejeitada por falha na autenticação [%s]", identity)
+		var request map[string]interface{}
+		if err := json.Unmarshal([]byte(message), &request); err != nil {
+			log.Printf("Erro ao decodificar JSON: %v", err)
 			continue
 		}
 
-		_, sendErr := b.pub.Send(message, 0)
-		if sendErr != nil {
-			log.Printf("Erro ao enviar mensagem: %v", sendErr)
-			return
+		if request["type"] == "GetDBConfig" {
+			response := map[string]interface{}{
+				"status": "success",
+				"data":   b.serverCfg.GetDatabaseConfig(), // Pegando do serviço diretamente
+			}
+			responseJSON, _ := json.Marshal(response)
+			b.router.Send(identity, zmq4.SNDMORE)
+			b.router.Send(string(responseJSON), 0)
 		}
 	}
 }
+
 func (b *BrokerImpl) HandleSub() {
 	for {
 		msg, err := b.sub.Recv(0)
@@ -107,7 +111,7 @@ func NewBroker(cfg ConfigService) *BrokerImpl {
 }
 
 func checkBroker() {
-	
+
 }
 
 func ConnectToBroker() (*zmq4.Socket, error) {

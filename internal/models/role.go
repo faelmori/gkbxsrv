@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	//"github.com/faelmori/logz"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -21,7 +20,6 @@ type RoleRepoImpl struct{ *gorm.DB }
 func (g *RoleRepoImpl) Create(u *Role) (*Role, error) {
 	err := g.DB.Create(u).Error
 	if err != nil {
-		//return nil, logz.ErrorLog(fmt.Sprintf("RoleImpl repository: failed to create RoleImpl: %v", err), "GDBase")
 		return nil, fmt.Errorf("RoleImpl repository: failed to create RoleImpl: %w", err)
 	}
 	return u, nil
