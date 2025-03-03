@@ -47,7 +47,7 @@ func gdbaseCommand() *cobra.Command {
 			dbaseObj := databases.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
-				logz.Logger().Error(fmt.Sprintf("Error connecting to database: %v", dbaseConnErr), nil)
+				logz.Logger.Error(fmt.Sprintf("Error connecting to database: %v", dbaseConnErr), nil)
 				return dbaseConnErr
 			}
 
@@ -69,13 +69,13 @@ func gdbaseCommand() *cobra.Command {
 	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
 
 	if markHiddenErr := cmd.Flags().MarkHidden("quiet"); markHiddenErr != nil {
-		logz.Logger().Error(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), nil)
+		logz.Logger.Error(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), nil)
 	}
 	if markHiddenErr := cmd.Flags().MarkHidden("path"); markHiddenErr != nil {
-		logz.Logger().Error(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), nil)
+		logz.Logger.Error(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), nil)
 	}
 	if markHiddenErr := cmd.Flags().MarkHidden("dsn"); markHiddenErr != nil {
-		logz.Logger().Error(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), nil)
+		logz.Logger.Error(fmt.Sprintf("Error marking flag as hidden: %v", markHiddenErr), nil)
 	}
 
 	cmd = AuthenticationRootCommand(cmd)

@@ -1,23 +1,22 @@
 package logz
 
-import (
-	"github.com/faelmori/logz"
-)
+import "github.com/faelmori/logz"
 
 var (
 	logzCfg logz.LogzConfig
 	logger  logz.LogzLogger
 )
 
-func init() {
+func getLogger() logz.LogzLogger {
 	if logger == nil {
 		logger = logz.NewLogger("GoSpyder")
 		logzCfg = logger.GetConfig()
 		logzCfg.SetLevel("INFO")
-		logzCfg.SetFormat("json")
+		logzCfg.SetFormat("JSON")
+		logzCfg.SetOutput("/home/user/.kubex/logz/gkbxsrv.log")
 		logger.SetConfig(logzCfg)
 	}
+	return logger
 }
 
-// Logger returns the global logger instance.
-func Logger() logz.LogzLogger { return logger }
+var Logger = getLogger()
