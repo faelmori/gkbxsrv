@@ -10,16 +10,13 @@ import (
 )
 
 const (
-	HeartbeatLiveness = 3                       // Tentativas de heartbeat antes de expirar
-	HeartbeatInterval = 2500 * time.Millisecond // Intervalo entre heartbeats
-	HeartbeatExpiry   = HeartbeatInterval * HeartbeatLiveness
+	HeartbeatInterval = 2500 * time.Millisecond // Interval between heartbeats
 )
 
-// Estrutura do Broker
 type BrokerImpl struct {
 	context     *zmq4.Context
-	frontend    *zmq4.Socket // FRONTEND (ROUTER) para comunicação com clientes
-	backend     *zmq4.Socket // BACKEND (DEALER) para comunicação com workers
+	frontend    *zmq4.Socket // FRONTEND (ROUTER) for communication with clients
+	backend     *zmq4.Socket // BACKEND (DEALER) for communication with workers
 	services    map[string]*Service
 	workers     map[string]*Worker
 	waiting     []*Worker
@@ -28,14 +25,12 @@ type BrokerImpl struct {
 	verbose     bool
 }
 
-// Estrutura para um Serviço
 type Service struct {
 	name     string
 	requests [][]string
 	waiting  []*Worker
 }
 
-// Estrutura para um Worker
 type Worker struct {
 	identity string
 	service  *Service
@@ -43,31 +38,36 @@ type Worker struct {
 	broker   *BrokerImpl
 }
 
-// Criação do Broker
 func NewBroker(verbose bool) (*BrokerImpl, error) {
 	ctx, err := zmq4.NewContext()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao criar contexto ZMQ: %v", err)
+		return nil, fmt.Errorf("error creating ZMQ context: %v", err)
 	}
 
-	// Criação do FRONTEND (ROUTER)
+	// Create FRONTEND (ROUTER)
 	frontend, err := ctx.NewSocket(zmq4.ROUTER)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao criar FRONTEND (ROUTER): %v", err)
+		return nil, fmt.Errorf("error creating FRONTEND (ROUTER): %v", err)
 	}
-	frontend.SetRouterMandatory(1)
-	frontend.SetRouterHandover(true)
+	frontendSetRouterMandatoryErr := frontend.SetRouterMandatory(1)
+	if frontendSetRouterMandatoryErr != nil {
+		return nil, frontendSetRouterMandatoryErr
+	}
+	frontendSetRouterHandoverErr := frontend.SetRouterHandover(true)
+	if frontendSetRouterHandoverErr != nil {
+		return nil, frontendSetRouterHandoverErr
+	}
 	if err := frontend.Bind("tcp://0.0.0.0:5555"); err != nil {
-		return nil, fmt.Errorf("erro ao vincular FRONTEND (ROUTER): %v", err)
+		return nil, fmt.Errorf("error binding FRONTEND (ROUTER): %v", err)
 	}
 
-	// Criação do BACKEND (DEALER)
+	// Create BACKEND (DEALER)
 	backend, err := ctx.NewSocket(zmq4.DEALER)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao criar BACKEND (DEALER): %v", err)
+		return nil, fmt.Errorf("error creating BACKEND (DEALER): %v", err)
 	}
 	if err := backend.Bind("inproc://backend"); err != nil {
-		return nil, fmt.Errorf("erro ao vincular BACKEND (DEALER): %v", err)
+		return nil, fmt.Errorf("error binding BACKEND (DEALER): %v", err)
 	}
 
 	broker := &BrokerImpl{
@@ -81,75 +81,60 @@ func NewBroker(verbose bool) (*BrokerImpl, error) {
 		verbose:     verbose,
 	}
 
-	// Lança os workers
+	// Launch workers
 	for i := 0; i < 5; i++ {
 		go broker.workerTask()
 	}
 
-	// Inicia o proxy
+	// Start the proxy
 	go broker.startProxy()
 
-	// Inicia o gerenciamento de heartbeats
-	go broker.handleHeartbeats()
+	// Start heartbeat management
+	//go broker.handleHeartbeats()
 
 	return broker, nil
 }
 
-// Proxy para conectar FRONTEND (ROUTER) e BACKEND (DEALER)
 func (b *BrokerImpl) startProxy() {
-	logz.Logger.Info("Iniciando proxy entre FRONTEND e BACKEND...", nil)
+	logz.Logger.Info("Starting proxy between FRONTEND and BACKEND...", nil)
 	err := zmq4.Proxy(b.frontend, b.backend, nil)
 	if err != nil {
-		logz.Logger.Error("Erro no proxy entre FRONTEND e BACKEND", map[string]interface{}{
+		logz.Logger.Error("Error in proxy between FRONTEND and BACKEND", map[string]interface{}{
 			"error": err,
 		})
 	}
 }
 
-// Lógica do Worker (simulado)
 func (b *BrokerImpl) workerTask() {
 	worker, err := b.context.NewSocket(zmq4.DEALER)
 	if err != nil {
-		logz.Logger.Error("Erro ao criar socket para worker", map[string]interface{}{
+		logz.Logger.Error("Error creating socket for worker", map[string]interface{}{
 			"error": err,
 		})
 		return
 	}
-	defer worker.Close()
+	//defer worker.Close()
 
 	if err := worker.Connect("inproc://backend"); err != nil {
-		logz.Logger.Error("Erro ao conectar worker ao BACKEND", map[string]interface{}{
+		logz.Logger.Error("Error connecting worker to BACKEND", map[string]interface{}{
 			"error": err,
 		})
 		return
 	}
 
 	for {
-		msg, err := worker.RecvMessage(0)
-		if err != nil {
-			logz.Logger.Error("Erro ao receber mensagem no WORKER", map[string]interface{}{
-				"error": err,
-			})
-			continue
-		}
-
-		logz.Logger.Info("Mensagem recebida no WORKER", map[string]interface{}{
-			"context": "workerTask",
-			"frames":  len(msg),
-			"message": msg,
-		})
-
-		// Valida se a mensagem contém pelo menos 2 frames
+		msg, _ := worker.RecvMessage(0)
 		if len(msg) < 2 {
-			logz.Logger.Warn("Mensagem malformada recebida no WORKER", nil)
+			logz.Logger.Debug("Malformed message received in WORKER", nil)
 			continue
 		}
 
-		// Processa o payload
+		id, msg := splitMessage(msg)
+
 		payload := msg[len(msg)-1]
 		deserializedModel, deserializedModelErr := models.NewModelRegistryFromSerialized([]byte(payload))
 		if deserializedModelErr != nil {
-			logz.Logger.Error("Erro ao desserializar payload no WORKER", map[string]interface{}{
+			logz.Logger.Error("Error deserializing payload in WORKER", map[string]interface{}{
 				"context": "workerTask",
 				"payload": payload,
 				"error":   deserializedModelErr.Error(),
@@ -157,14 +142,14 @@ func (b *BrokerImpl) workerTask() {
 			continue
 		}
 
-		logz.Logger.Info("Payload desserializado no WORKER", map[string]interface{}{
+		logz.Logger.Debug("Payload deserialized in WORKER", map[string]interface{}{
 			"context": "workerTask",
 			"payload": deserializedModel.ToModel(),
 		})
 
 		tp, tpErr := deserializedModel.GetType()
 		if tpErr != nil {
-			logz.Logger.Error("Erro ao obter tipo do payload no WORKER", map[string]interface{}{
+			logz.Logger.Error("Error getting payload type in WORKER", map[string]interface{}{
 				"context":           "workerTask",
 				"tp":                tp,
 				"error":             tpErr,
@@ -173,7 +158,7 @@ func (b *BrokerImpl) workerTask() {
 			continue
 		}
 
-		logz.Logger.Info("Tipo do payload no WORKER", map[string]interface{}{
+		logz.Logger.Debug("Payload type in WORKER", map[string]interface{}{
 			"context": "workerTask",
 			"tp":      tp.Name(),
 			"payload": deserializedModel.ToModel(),
@@ -181,20 +166,20 @@ func (b *BrokerImpl) workerTask() {
 
 		if tp.Name() == "PingImpl" {
 			response := fmt.Sprintf(`{"type":"ping","data":{"ping":"%v"}}`, "pong")
-			if _, workerSendMessageErr := worker.SendMessage(response); workerSendMessageErr != nil {
-				logz.Logger.Error("Erro ao enviar resposta ao BACKEND no WORKER", map[string]interface{}{
+			if _, workerSendMessageErr := worker.SendMessage(id, response); workerSendMessageErr != nil {
+				logz.Logger.Error("Error sending response to BACKEND in WORKER", map[string]interface{}{
 					"context":  "workerTask",
 					"response": response,
 					"error":    workerSendMessageErr,
 				})
 			} else {
-				logz.Logger.Info("Resposta enviada ao BACKEND no WORKER", map[string]interface{}{
+				logz.Logger.Debug("Response sent to BACKEND in WORKER", map[string]interface{}{
 					"context":  "workerTask",
 					"response": response,
 				})
 			}
 		} else {
-			logz.Logger.Warn("Comando desconhecido no WORKER", map[string]interface{}{
+			logz.Logger.Debug("Unknown command in WORKER", map[string]interface{}{
 				"context": "workerTask",
 				"type":    tp.Name(),
 				"payload": deserializedModel.ToModel(),
@@ -203,28 +188,40 @@ func (b *BrokerImpl) workerTask() {
 	}
 }
 
-// Gerenciamento de heartbeats
 func (b *BrokerImpl) handleHeartbeats() {
 	ticker := time.NewTicker(HeartbeatInterval)
-	defer ticker.Stop()
+	//defer ticker.Stop()
+	//defer b.mu.Unlock()
 
 	for range ticker.C {
 		b.mu.Lock()
 		now := time.Now()
 		for id, worker := range b.workers {
 			if now.After(worker.expiry) {
-				logz.Logger.Warn(fmt.Sprintf("Worker expirado: %s", id), nil)
+				logz.Logger.Warn(fmt.Sprintf("Expired worker: %s", id), nil)
 				delete(b.workers, id)
 			}
 		}
 		b.mu.Unlock()
 	}
+
+	b.mu.Unlock()
 }
 
-// Fechamento do broker
 func (b *BrokerImpl) Stop() {
-	b.frontend.Close()
-	b.backend.Close()
-	b.context.Term()
-	logz.Logger.Info("Broker encerrado", nil)
+	_ = b.frontend.Close()
+	_ = b.backend.Close()
+	_ = b.context.Term()
+	logz.Logger.Info("Broker stopped", nil)
+}
+
+func splitMessage(recPayload []string) (id, msg []string) {
+	if recPayload[1] == "" {
+		id = recPayload[:2]
+		msg = recPayload[2:]
+	} else {
+		id = recPayload[:1]
+		msg = recPayload[1:]
+	}
+	return
 }
