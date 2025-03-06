@@ -13,7 +13,7 @@ var ModelListExp = []interface{}{
 	Order{},
 }
 
-type ModelRegistry = models.ModelRegistryInterface
+type ModelRegistry = models.ModelRegistry
 
 func RegisterModel(name string, modelType reflect.Type) error {
 	return models.RegisterModel(name, modelType)

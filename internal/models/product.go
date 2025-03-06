@@ -1,18 +1,22 @@
 package models
 
 import (
+	"fmt"
 	"gorm.io/gorm"
+	"reflect"
 	"strconv"
 )
 
 type ProductRepo interface {
-	Create(p *Product) (*Product, error)
-	FindOne(where ...interface{}) (*Product, error)
-	FindAll(where ...interface{}) ([]*Product, error)
-	Update(p *Product) (*Product, error)
+	GetModel() reflect.Type
+	Create(p Model) (Model, error)
+	FindOne(where ...interface{}) (Model, error)
+	FindAll(where ...interface{}) ([]Model, error)
+	Update(p Model) (Model, error)
 	Delete(id uint) error
 	Close() error
-	List(where ...interface{}) (*TableHandler, error)
+	List(where ...interface{}) (TableHandler, error)
+	ExecuteCommand(command string, data interface{}) (interface{}, error)
 
 	FindAllByDepart(depart string) ([]*Product, error)
 	FindAllByCategory(category string) ([]*Product, error)
@@ -23,14 +27,17 @@ type ProductRepoImpl struct {
 
 func NewGormProductRepo(db *gorm.DB) *ProductRepoImpl { return &ProductRepoImpl{db} }
 
-func (g *ProductRepoImpl) Create(p *Product) (*Product, error) {
+func (g *ProductRepoImpl) GetModel() reflect.Type {
+	return reflect.TypeOf(&productImpl{})
+}
+func (g *ProductRepoImpl) Create(p Model) (Model, error) {
 	err := g.DB.Create(p).Error
 	if err != nil {
 		return nil, err
 	}
 	return p, nil
 }
-func (g *ProductRepoImpl) FindOne(where ...interface{}) (*Product, error) {
+func (g *ProductRepoImpl) FindOne(where ...interface{}) (Model, error) {
 	var p Product
 	err := g.DB.Where(where[0], where[1:]).First(&p).Error
 	if err != nil {
@@ -38,7 +45,7 @@ func (g *ProductRepoImpl) FindOne(where ...interface{}) (*Product, error) {
 	}
 	return &p, nil
 }
-func (g *ProductRepoImpl) FindAll(where ...interface{}) ([]*Product, error) {
+func (g *ProductRepoImpl) FindAll(where ...interface{}) ([]Model, error) {
 	var products []*Product
 	err := g.DB.Where(where[0], where[1:]).Find(&products).Error
 	if err != nil {
@@ -46,7 +53,7 @@ func (g *ProductRepoImpl) FindAll(where ...interface{}) ([]*Product, error) {
 	}
 	return products, nil
 }
-func (g *ProductRepoImpl) Update(p *Product) (*Product, error) {
+func (g *ProductRepoImpl) Update(p Model) (Model, error) {
 	err := g.DB.Save(p).Error
 	if err != nil {
 		return nil, err
@@ -67,7 +74,7 @@ func (g *ProductRepoImpl) Close() error {
 	}
 	return sqlDB.Close()
 }
-func (g *ProductRepoImpl) List(where ...interface{}) (*TableHandler, error) {
+func (g *ProductRepoImpl) List(where ...interface{}) (TableHandler, error) {
 	var products []*productImpl
 	err := g.DB.Where(where[0], where[1:]).Find(&products).Error
 	if err != nil {
@@ -91,7 +98,8 @@ func (g *ProductRepoImpl) List(where ...interface{}) (*TableHandler, error) {
 	}
 	return &TableHandler{rows: tableHandlerMap}, nil
 }
-func (g *ProductRepoImpl) FindAllByDepart(depart string) ([]*Product, error) {
+
+func (g *ProductRepoImpl) FindAllByDepart(depart string) ([]Model, error) {
 	var products []*Product
 	err := g.DB.Where("depart = ?", depart).Find(&products).Error
 	if err != nil {
@@ -99,13 +107,56 @@ func (g *ProductRepoImpl) FindAllByDepart(depart string) ([]*Product, error) {
 	}
 	return products, nil
 }
-func (g *ProductRepoImpl) FindAllByCategory(category string) ([]*Product, error) {
+func (g *ProductRepoImpl) FindAllByCategory(category string) ([]Model, error) {
 	var products []*Product
 	err := g.DB.Where("category = ?", category).Find(&products).Error
 	if err != nil {
 		return nil, err
 	}
 	return products, nil
+}
+
+func (g *ProductRepoImpl) ExecuteCommand(command string, data interface{}) (interface{}, error) {
+	switch command {
+	case "findAll":
+		products, err := g.FindAll()
+		if err != nil {
+			return nil, err
+		}
+		return products, nil
+	case "findOne":
+		product, err := g.FindOne(data)
+		if err != nil {
+			return nil, err
+		}
+		return product, nil
+	case "create":
+		product, err := g.Create(data.(*Product))
+		if err != nil {
+			return nil, err
+		}
+		return product, nil
+	case "update":
+		product, err := g.Update(data.(*Product))
+		if err != nil {
+			return nil, err
+		}
+		return product, nil
+	case "delete":
+		err := g.Delete(data.(uint))
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	case "list":
+		tableHandler, err := g.List(data)
+		if err != nil {
+			return nil, err
+		}
+		return tableHandler, nil
+	default:
+		return nil, fmt.Errorf("comando desconhecido: %s", command)
+	}
 }
 
 type Product interface {

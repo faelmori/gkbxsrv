@@ -66,6 +66,7 @@ type CustomerRepo interface {
 	Delete(id uint) error
 	Close() error
 	List(where ...interface{}) (*TableHandler, error)
+	ExecuteCommand(command string, data interface{}) (interface{}, error)
 }
 type CustomerRepoImpl struct{ *gorm.DB }
 
@@ -134,6 +135,22 @@ func (g *CustomerRepoImpl) List(where ...interface{}) (*TableHandler, error) {
 		}
 	}
 	return &TableHandler{tableHandlerMap}, nil
+}
+func (g *CustomerRepoImpl) ExecuteCommand(command string, data interface{}) (interface{}, error) {
+	switch command {
+	case "findAll":
+		return g.FindAll()
+	case "findOne":
+		return g.FindOne(data)
+	case "create":
+		return g.Create(data.(*Customer))
+	case "update":
+		return g.Update(data.(*Customer))
+	case "delete":
+		return nil, g.Delete(data.(uint))
+	default:
+		return nil, nil
+	}
 }
 
 func NewCustomerRepo(db *gorm.DB) CustomerRepo { return &CustomerRepoImpl{db} }
