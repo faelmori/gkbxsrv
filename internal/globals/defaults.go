@@ -139,4 +139,5 @@ var (
 	ErrPasswordRequired = &ValidationError{Field: "password", Message: "Password is required"}
 	ErrEmailRequired    = &ValidationError{Field: "email", Message: "Email is required"}
 	ErrDBNotProvided    = &ValidationError{Field: "db", Message: "Database not provided"}
+	ErrModelNotFound    = &ValidationError{Field: "model", Message: "Model not found"}
 )

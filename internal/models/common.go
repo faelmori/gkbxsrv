@@ -1,5 +1,9 @@
 package models
 
+type PingImpl struct {
+	Ping string `json:"ping"`
+}
+
 type RegisterUserInput struct {
 	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`

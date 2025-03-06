@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"github.com/faelmori/gkbxsrv/internal/services"
 	databases "github.com/faelmori/gkbxsrv/services"
 	"github.com/spf13/cobra"
@@ -8,7 +9,7 @@ import (
 
 func BrokerCommands() []*cobra.Command {
 	return []*cobra.Command{
-		gdbaseCommand(),
+		brokerCommand(),
 	}
 }
 
@@ -37,9 +38,11 @@ func brokerCommand() *cobra.Command {
 			"Broker for interacting with the database, models, and many other services",
 		}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := services.NewConfigSrv(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
-			brk := services.NewBroker(cfg)
-
+			//cfg := services.NewConfigSrv(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
+			_, brkErr := services.NewBroker(true)
+			if brkErr != nil {
+				return fmt.Errorf("error creating broker: %v", brkErr)
+			}
 			return nil
 		},
 	}

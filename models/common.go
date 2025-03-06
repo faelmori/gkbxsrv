@@ -5,6 +5,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type Ping struct {
+	Ping string `json:"ping"`
+}
+
 type RegisterUserInput struct {
 	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`

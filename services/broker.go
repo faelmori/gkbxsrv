@@ -2,10 +2,8 @@ package services
 
 import fsys "github.com/faelmori/gkbxsrv/internal/services"
 
-type Broker interface {
-	fsys.Broker
-}
+type Broker = fsys.BrokerImpl
 
-func NewBrokerService(cfgSrv ConfigService) Broker {
-	return fsys.NewBroker(cfgSrv)
+func NewBrokerService(verbose bool) (*Broker, error) {
+	return fsys.NewBroker(verbose)
 }

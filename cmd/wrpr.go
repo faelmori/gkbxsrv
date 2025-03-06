@@ -174,6 +174,7 @@ func (m *Utilz) Command() *cobra.Command {
 	cmd.AddCommand(utilsCmd)
 
 	cmd.AddCommand(cli.GdbaseCommands()...)
+	cmd.AddCommand(cli.BrokerCommands()...)
 
 	for _, c := range cmd.Commands() {
 		setUsageDefinition(c)
