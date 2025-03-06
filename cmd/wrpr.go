@@ -1,71 +1,70 @@
-package cmd
+package main
 
 import (
 	"fmt"
 	"github.com/faelmori/gkbxsrv/cmd/cli"
 	"github.com/spf13/cobra"
 	"os"
-	"reflect"
 	"strings"
 )
 
-// Utilz representa a estrutura do módulo utils.
-type Utilz struct{}
+// GKBXSrv represents the structure of the utils module.
+type GKBXSrv struct{}
 
-// RegX registra e retorna uma nova instância de Utilz.
-// Retorna um ponteiro para uma nova instância de Utilz.
-func RegX() *Utilz {
-	return &Utilz{}
+// RegX registers and returns a new instance of GKBXSrv.
+// Returns a pointer to a new instance of GKBXSrv.
+func RegX() *GKBXSrv {
+	return &GKBXSrv{}
 }
 
-// Alias retorna o alias do módulo utils.
-// Retorna uma string contendo o alias do módulo.
-func (m *Utilz) Alias() string {
-	return "utilz"
+// Alias returns the alias of the utils module.
+// Returns a string containing the alias of the module.
+func (m *GKBXSrv) Alias() string {
+	return "gkbxsrv"
 }
 
-// ShortDescription retorna uma descrição curta do módulo utils.
-// Retorna uma string contendo a descrição curta do módulo.
-func (m *Utilz) ShortDescription() string {
-	return "Utilities module"
+// ShortDescription returns a short description of the utils module.
+// Returns a string containing the short description of the module.
+func (m *GKBXSrv) ShortDescription() string {
+	return "Kubex Ecosystem Services module"
 }
 
-// LongDescription retorna uma descrição longa do módulo utils.
-// Retorna uma string contendo a descrição longa do módulo.
-func (m *Utilz) LongDescription() string {
-	return "Utilities module is a set of tools to help you with your daily tasks."
+// LongDescription returns a long description of the utils module.
+// Returns a string containing the long description of the module.
+func (m *GKBXSrv) LongDescription() string {
+	return "Kubex Ecosystem Services module"
 }
 
-// Usage retorna a forma de uso do módulo utils.
-// Retorna uma string contendo a forma de uso do módulo.
-func (m *Utilz) Usage() string {
-	return "kbx utils [command] [args]"
+// Usage returns the usage of the utils module.
+// Returns a string containing the usage of the module.
+func (m *GKBXSrv) Usage() string {
+	return "gkbxsrv [command] [args]"
 }
 
-// Examples retorna exemplos de uso do módulo utils.
-// Retorna um slice de strings contendo exemplos de uso do módulo.
-func (m *Utilz) Examples() []string {
-	return []string{"kbx util [command] [args]", "kbx utils getOrCreate [args]"}
+// Examples returns examples of usage of the utils module.
+// Returns a slice of strings containing examples of usage of the module.
+func (m *GKBXSrv) Examples() []string {
+	return []string{"gkbxsrv [command] [args]", "gkbxsrv getOrCreate [args]"}
 }
 
-// Active verifica se o módulo utils está ativo.
-// Retorna um booleano indicando se o módulo está ativo.
-func (m *Utilz) Active() bool {
+// Active checks if the utils module is active.
+// Returns a boolean indicating if the module is active.
+func (m *GKBXSrv) Active() bool {
 	return true
 }
 
-func (m *Utilz) Module() string {
-	return "utils"
+func (m *GKBXSrv) Module() string {
+	return "gkbxsrv"
 }
 
-func (m *Utilz) Execute() error {
+func (m *GKBXSrv) Execute() error {
 	if err := m.Command().Execute(); err != nil {
-		return fmt.Errorf("erro ao executar o comando: %w", err)
+		return fmt.Errorf("error executing command: %w", err)
 	}
 	return nil
 }
 
-func (m *Utilz) concatenateExamples() string {
+func (m *GKBXSrv) concatenateExamples() string {
 	examples := ""
 	for _, example := range m.Examples() {
 		examples += string(example) + "\n  "
@@ -73,10 +72,10 @@ func (m *Utilz) concatenateExamples() string {
 	return examples
 }
 
-func (m *Utilz) Command() *cobra.Command {
-	cmd := utilzCmd(m)
+func (m *GKBXSrv) Command() *cobra.Command {
+	cmd := m.utilzCmd()
 
-	// Comando data
+	// Data command
 	dataCmd := &cobra.Command{
 		Use:         "data",
 		Aliases:     []string{"d"},
@@ -90,7 +89,7 @@ func (m *Utilz) Command() *cobra.Command {
 	dataCmd.AddCommand(cmdDataList...)
 	cmd.AddCommand(dataCmd)
 
-	// Comando path
+	// Paths command
 	pathsCmd := &cobra.Command{
 		Use:         "fs",
 		Aliases:     []string{"fileSystem", "path", "pth"},
@@ -104,7 +103,7 @@ func (m *Utilz) Command() *cobra.Command {
 	pathsCmd.AddCommand(pathsCmdList...)
 	cmd.AddCommand(pathsCmd)
 
-	// Comando users
+	// Users command
 	usersCmd := &cobra.Command{
 		Use:         "users",
 		Aliases:     []string{"u"},
@@ -118,7 +117,7 @@ func (m *Utilz) Command() *cobra.Command {
 	usersCmd.AddCommand(usersCmdList...)
 	cmd.AddCommand(usersCmd)
 
-	// Comando ports
+	// Ports command
 	portsCmd := &cobra.Command{
 		Use:         "ports",
 		Aliases:     []string{"p"},
@@ -132,7 +131,7 @@ func (m *Utilz) Command() *cobra.Command {
 	portsCmd.AddCommand(portsCmdList...)
 	cmd.AddCommand(portsCmd)
 
-	// Comando ssh
+	// SSH command
 	sshCmd := &cobra.Command{
 		Use:         "ssh",
 		Aliases:     []string{"s"},
@@ -146,7 +145,7 @@ func (m *Utilz) Command() *cobra.Command {
 	sshCmd.AddCommand(sshCmdList...)
 	cmd.AddCommand(sshCmd)
 
-	// Comando term
+	// Term command
 	termCmd := &cobra.Command{
 		Use:         "term",
 		Aliases:     []string{"t"},
@@ -160,7 +159,7 @@ func (m *Utilz) Command() *cobra.Command {
 	termCmd.AddCommand(termCmdList...)
 	cmd.AddCommand(termCmd)
 
-	// Comando utils
+	// Utils command
 	utilsCmd := &cobra.Command{
 		Use:         "utils",
 		Aliases:     []string{"u"},
@@ -185,7 +184,7 @@ func (m *Utilz) Command() *cobra.Command {
 	return cmd
 }
 
-func (m *Utilz) getDescriptions(descriptionArg []string, hideBanner bool) map[string]string {
+func (m *GKBXSrv) getDescriptions(descriptionArg []string, hideBanner bool) map[string]string {
 	var description, banner string
 	if descriptionArg != nil {
 		if strings.Contains(strings.Join(os.Args[0:], ""), "-h") {
@@ -213,82 +212,14 @@ func (m *Utilz) getDescriptions(descriptionArg []string, hideBanner bool) map[st
 	return map[string]string{"banner": banner, "description": description}
 }
 
-func (m *Utilz) utilzCmdsList() ([]*cobra.Command, error) {
-	//cmdUtilz := utilzCmd(m)
-
-	return []*cobra.Command{
-		//cmdUtilz,
-	}, nil
-}
-
-func (m *Utilz) utilzCmd() *cobra.Command {
+func (m *GKBXSrv) utilzCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:         "utils",
-		Aliases:     []string{m.Alias(), "util", "utl", "u"},
+		Use:         "gkbxsrv",
 		Example:     m.concatenateExamples(),
 		Annotations: m.getDescriptions([]string{m.LongDescription(), m.ShortDescription()}, false),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// Verifica e executa as flags
-			cmdFlag, _ := cmd.Flags().GetString("cmd")
-			argsFlag, _ := cmd.Flags().GetStringArray("args")
-			//quietFlag, _ := cmd.Flags().GetBool("quiet")
-
-			newArgs := argsFlag
-			newArgs = append(newArgs, args...)
-			//quietFlagStr := ""
-			//if quietFlag {
-			//	quietFlagStr = "quiet"
-			//}
-
-			if cmdFlag != "" {
-				switch cmdFlag {
-				case "users":
-					return nil
-				case "data":
-					return nil
-				case "paths":
-					return nil
-				case "ports":
-					return nil
-				default:
-					return fmt.Errorf("command not found")
-				}
-			}
-
-			return fmt.Errorf("invalid command or flag")
-		},
-	}
-
-	// Flags para deps
-	cmd.Flags().StringP("cmd", "c", "", "Executa o comando especificado")
-	cmd.Flags().StringArrayP("args", "a", []string{}, "Argumentos para o comando especificado")
-	cmd.Flags().BoolP("quiet", "q", false, "Modo silencioso")
-
-	return cmd
-}
-
-func utilzCmd(m *Utilz) *cobra.Command {
-
-	cmd := &cobra.Command{
-		Use:         m.Module(),
-		Aliases:     []string{"util", "utils"},
-		Annotations: m.getDescriptions([]string{m.LongDescription(), m.ShortDescription()}, os.Getenv("KBX_HIDE_BANNER") == "true"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
 	}
-
 	return cmd
-}
-
-func getDepsList() ([]string, error) {
-	if len(os.Args) == 0 {
-		return nil, fmt.Errorf("nenhuma dependência informada")
-	}
-	for i, dep := range os.Args {
-		if reflect.TypeOf(dep).String() == "[]string" {
-			return os.Args[i+1:], nil
-		}
-	}
-	return nil, fmt.Errorf("nenhuma dependência informada")
 }

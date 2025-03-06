@@ -3,11 +3,11 @@ package logz
 import "github.com/faelmori/logz"
 
 var (
-	logzCfg logz.LogzConfig
-	logger  logz.LogzLogger
+	logzCfg logz.Config
+	logger  logz.Logger
 )
 
-func getLogger() logz.LogzLogger {
+func getLogger() logz.Logger {
 	if logger == nil {
 		logger = logz.NewLogger("GoSpyder")
 		logzCfg = logger.GetConfig()
