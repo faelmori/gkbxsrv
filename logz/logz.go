@@ -12,8 +12,6 @@ func getLogger() logz.LogzLogger {
 		logger = logz.NewLogger("GoSpyder")
 		logzCfg = logger.GetConfig()
 		logzCfg.SetLevel("INFO")
-		logzCfg.SetFormat("JSON")
-		logzCfg.SetOutput("/home/user/.kubex/logz/gkbxsrv.log")
 		logger.SetConfig(logzCfg)
 	}
 	return logger
