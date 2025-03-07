@@ -1,4 +1,4 @@
-package forms
+package users
 
 import (
 	//"github.com/faelmori/xtui/types"

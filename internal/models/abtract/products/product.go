@@ -1,7 +1,8 @@
-package models
+package products
 
 import (
 	"fmt"
+	c "github.com/faelmori/gkbxsrv/internal/models/abtract/commons"
 	"gorm.io/gorm"
 	"reflect"
 	"strconv"
@@ -9,13 +10,13 @@ import (
 
 type ProductRepo interface {
 	GetModel() reflect.Type
-	Create(p Model) (Model, error)
-	FindOne(where ...interface{}) (Model, error)
-	FindAll(where ...interface{}) ([]Model, error)
-	Update(p Model) (Model, error)
+	Create(p c.Model) (c.Model, error)
+	FindOne(where ...interface{}) (c.Model, error)
+	FindAll(where ...interface{}) ([]c.Model, error)
+	Update(p c.Model) (c.Model, error)
 	Delete(id uint) error
 	Close() error
-	List(where ...interface{}) (TableHandler, error)
+	List(where ...interface{}) (c.TableHandler, error)
 	ExecuteCommand(command string, data interface{}) (interface{}, error)
 
 	FindAllByDepart(depart string) ([]*Product, error)

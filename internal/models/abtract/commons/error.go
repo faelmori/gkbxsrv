@@ -1,4 +1,4 @@
-package models
+package commons
 
 type ValidationError struct {
 	Field   string
