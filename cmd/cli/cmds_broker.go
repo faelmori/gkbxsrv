@@ -1,10 +1,14 @@
 package cli
 
 import (
-	"fmt"
 	"github.com/faelmori/gkbxsrv/internal/services"
+	"github.com/faelmori/gkbxsrv/logz"
 	databases "github.com/faelmori/gkbxsrv/services"
 	"github.com/spf13/cobra"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 func BrokerCommands() []*cobra.Command {
@@ -14,8 +18,6 @@ func BrokerCommands() []*cobra.Command {
 }
 
 func brokerCommand() *cobra.Command {
-	var configFile, host, port string
-
 	if defaultConfitFile == "" {
 		if fs == nil {
 			tfs := databases.NewFileSystemService("")
@@ -29,6 +31,8 @@ func brokerCommand() *cobra.Command {
 		"gkbxsrv broker stop",
 	}
 
+	var ws sync.WaitGroup
+
 	cmd := &cobra.Command{
 		Use:     "broker",
 		Aliases: []string{"brkr", "bkr"},
@@ -38,18 +42,39 @@ func brokerCommand() *cobra.Command {
 			"Broker for interacting with the database, models, and many other services",
 		}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			//cfg := services.NewConfigSrv(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
-			_, brkErr := services.NewBroker(true)
-			if brkErr != nil {
-				return fmt.Errorf("error creating broker: %v", brkErr)
-			}
+			chanSig := make(chan os.Signal, 1)
+			signal.Notify(chanSig, syscall.SIGINT, syscall.SIGTERM)
+
+			ws.Add(1)
+			go func() {
+				defer ws.Done()
+				logz.Logger.Info("Starting broker...", map[string]interface{}{"configFile": configFile, "host": host, "port": port})
+
+				///if _, brkErr := services.NewBrokerConn(port); brkErr != nil {
+				if _, brkErr := services.NewBroker(true); brkErr != nil {
+					logz.Logger.Fatalln("Error starting broker", map[string]interface{}{
+						"context":  "gkbxsrv",
+						"action":   "broker",
+						"showData": true,
+						"error":    brkErr.Error(),
+						"port":     port,
+					})
+
+					chanSig <- syscall.SIGTERM
+					return
+				}
+			}()
+			logz.Logger.Info("Broker started successfully!", nil)
+
+			<-chanSig
+			ws.Wait()
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVarP(&configFile, "config", "c", defaultConfitFile, "config file")
-	cmd.Flags().StringVarP(&host, "host", "H", "localhost", "host")
-	cmd.Flags().StringVarP(&port, "port", "P", "5432", "port")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "host")
+	cmd.Flags().StringVarP(&port, "port", "P", "5555", "port")
 
 	return cmd
 }

@@ -11,12 +11,12 @@ import (
 // port: a porta a ser verificada.
 // Retorna true se a porta estiver aberta, caso contrário, false. Retorna um erro, se houver.
 func CheckPortOpen(port string) (bool, error) {
-	conn, err := net.Dial("tcp", "localhost:"+port)
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		return false, nil
+		return false, err // Porta já está em uso ou bloqueada
 	}
-	defer conn.Close()
-	return true, nil
+	_ = ln.Close()
+	return true, nil // Porta disponível
 }
 
 // ListOpenPorts lista todas as portas abertas no sistema.

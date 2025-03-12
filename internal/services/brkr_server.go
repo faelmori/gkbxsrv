@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/faelmori/gkbxsrv/internal/models"
 	"github.com/faelmori/gkbxsrv/logz"
+	"github.com/goccy/go-json"
 	"github.com/pebbe/zmq4"
+	"os"
 	"sync"
 	"time"
 )
@@ -15,22 +17,21 @@ const (
 
 type BrokerImpl struct {
 	context     *zmq4.Context
-	frontend    *zmq4.Socket // FRONTEND (ROUTER) for communication with clients
-	backend     *zmq4.Socket // BACKEND (DEALER) for communication with workers
+	frontend    *zmq4.Socket // FRONTEND (ROUTER) with clients
+	backend     *zmq4.Socket // BACKEND (DEALER) with workers
 	services    map[string]*Service
 	workers     map[string]*Worker
 	waiting     []*Worker
 	mu          sync.Mutex
 	heartbeatAt time.Time
+	brokerInfo  *BrokerInfoLock
 	verbose     bool
 }
-
 type Service struct {
 	name     string
 	requests [][]string
 	waiting  []*Worker
 }
-
 type Worker struct {
 	identity string
 	service  *Service
@@ -38,13 +39,12 @@ type Worker struct {
 	broker   *BrokerImpl
 }
 
-func NewBroker(verbose bool) (*BrokerImpl, error) {
+func NewBrokerConn(port string) (*zmq4.Socket, error) {
 	ctx, err := zmq4.NewContext()
 	if err != nil {
 		return nil, fmt.Errorf("error creating ZMQ context: %v", err)
 	}
 
-	// Create FRONTEND (ROUTER)
 	frontend, err := ctx.NewSocket(zmq4.ROUTER)
 	if err != nil {
 		return nil, fmt.Errorf("error creating FRONTEND (ROUTER): %v", err)
@@ -57,20 +57,46 @@ func NewBroker(verbose bool) (*BrokerImpl, error) {
 	if frontendSetRouterHandoverErr != nil {
 		return nil, frontendSetRouterHandoverErr
 	}
-	if err := frontend.Bind("tcp://0.0.0.0:5555"); err != nil {
-		return nil, fmt.Errorf("error binding FRONTEND (ROUTER): %v", err)
+
+	if hostBindErr := frontend.Bind(`tcp://0.0.0.0:` + port); hostBindErr != nil {
+		return nil, fmt.Errorf("error binding FRONTEND (ROUTER): %v", hostBindErr)
 	}
 
-	// Create BACKEND (DEALER)
+	return frontend, nil
+}
+func NewBroker(verbose bool) (*BrokerImpl, error) {
+	ctx, err := zmq4.NewContext()
+	if err != nil {
+		return nil, fmt.Errorf("error creating ZMQ context: %v", err)
+	}
+
+	frontend, err := ctx.NewSocket(zmq4.ROUTER)
+	if err != nil {
+		return nil, fmt.Errorf("error creating FRONTEND (ROUTER): %v", err)
+	}
+	frontendSetRouterMandatoryErr := frontend.SetRouterMandatory(1)
+	if frontendSetRouterMandatoryErr != nil {
+		return nil, frontendSetRouterMandatoryErr
+	}
+	frontendSetRouterHandoverErr := frontend.SetRouterHandover(true)
+	if frontendSetRouterHandoverErr != nil {
+		return nil, frontendSetRouterHandoverErr
+	}
+
+	if hostBindErr := frontend.Bind(`tcp://0.0.0.0:5555`); hostBindErr != nil {
+		return nil, fmt.Errorf("error binding FRONTEND (ROUTER): %v", hostBindErr)
+	}
+
 	backend, err := ctx.NewSocket(zmq4.DEALER)
 	if err != nil {
 		return nil, fmt.Errorf("error creating BACKEND (DEALER): %v", err)
 	}
-	if err := backend.Bind("inproc://backend"); err != nil {
-		return nil, fmt.Errorf("error binding BACKEND (DEALER): %v", err)
+	if bindErr := backend.Bind("inproc://backend"); bindErr != nil {
+		return nil, fmt.Errorf("error binding BACKEND (DEALER): %v", bindErr)
 	}
 
 	broker := &BrokerImpl{
+		brokerInfo:  NewBrokerInfo(randomName(), "5555"),
 		context:     ctx,
 		frontend:    frontend,
 		backend:     backend,
@@ -79,6 +105,24 @@ func NewBroker(verbose bool) (*BrokerImpl, error) {
 		waiting:     []*Worker{},
 		heartbeatAt: time.Now().Add(HeartbeatInterval),
 		verbose:     verbose,
+	}
+
+	if broker.brokerInfo == nil {
+		logz.Logger.Error("Error creating broker", nil)
+		return nil, fmt.Errorf("error creating broker: Empty broker info")
+	}
+	data, marshalErr := json.Marshal(broker.brokerInfo.GetBrokerInfo())
+	if marshalErr != nil {
+		logz.Logger.Error("Error marshalling broker info", map[string]interface{}{
+			"error": marshalErr,
+		})
+		return nil, marshalErr
+	}
+	if writeErr := os.WriteFile(broker.brokerInfo.GetPath(), data, 0644); writeErr != nil {
+		logz.Logger.Error("Error writing broker file", map[string]interface{}{
+			"error": writeErr,
+		})
+		return nil, writeErr
 	}
 
 	// Launch workers
@@ -104,7 +148,6 @@ func (b *BrokerImpl) startProxy() {
 		})
 	}
 }
-
 func (b *BrokerImpl) workerTask() {
 	worker, err := b.context.NewSocket(zmq4.DEALER)
 	if err != nil {
@@ -113,11 +156,13 @@ func (b *BrokerImpl) workerTask() {
 		})
 		return
 	}
-	//defer worker.Close()
 
-	if err := worker.Connect("inproc://backend"); err != nil {
+	if connErr := worker.Connect("inproc://backend"); connErr != nil {
 		logz.Logger.Error("Error connecting worker to BACKEND", map[string]interface{}{
-			"error": err,
+			"context":  "gkbxsrv",
+			"showDate": true,
+			"action":   "workerTask",
+			"error":    connErr.Error(),
 		})
 		return
 	}
@@ -187,7 +232,6 @@ func (b *BrokerImpl) workerTask() {
 		}
 	}
 }
-
 func (b *BrokerImpl) handleHeartbeats() {
 	ticker := time.NewTicker(HeartbeatInterval)
 	//defer ticker.Stop()
@@ -207,21 +251,9 @@ func (b *BrokerImpl) handleHeartbeats() {
 
 	b.mu.Unlock()
 }
-
 func (b *BrokerImpl) Stop() {
 	_ = b.frontend.Close()
 	_ = b.backend.Close()
 	_ = b.context.Term()
 	logz.Logger.Info("Broker stopped", nil)
-}
-
-func splitMessage(recPayload []string) (id, msg []string) {
-	if recPayload[1] == "" {
-		id = recPayload[:2]
-		msg = recPayload[2:]
-	} else {
-		id = recPayload[:1]
-		msg = recPayload[1:]
-	}
-	return
 }

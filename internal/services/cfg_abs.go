@@ -24,7 +24,9 @@ type ConfigService interface {
 	GetSettings() (map[string]interface{}, error)
 	GetSetting(key string) (interface{}, error)
 	GetLogger() *log.Logger
+
 	GetDatabaseConfig() glb.Database
+	SetDatabaseConfig(dbConfig *glb.Database) error
 
 	SetLogger()
 
@@ -44,6 +46,7 @@ type ConfigService interface {
 	genCacheFlag(flagToMark string) error
 	SetupConfigFromDbService() error
 }
+
 type ConfigServiceImpl struct {
 	Logger   *log.Logger  `json:"-"`
 	FilePath string       `json:"file_path"`
@@ -77,18 +80,20 @@ func (c *ConfigServiceImpl) calculateMD5Hash(filePath string) (string, error) {
 
 	return hashString, nil
 }
+
 func (c *ConfigServiceImpl) getExistingMD5Hash() (string, error) {
 	cfgFilePath := Fs.GetConfigFilePath()
 	hashFilePath := fmt.Sprintf("%s.md5", cfgFilePath)
 	if _, err := os.Stat(hashFilePath); err == nil {
 		hashFile, hashFileErr := os.ReadFile(hashFilePath)
 		if hashFileErr != nil {
-			// Lide com o erro
+			return "", hashFileErr
 		}
 		return string(hashFile), nil
 	}
 	return "", nil
 }
+
 func (c *ConfigServiceImpl) saveMD5Hash() error {
 	filePath := Fs.GetConfigFilePath()
 	hash, hashErr := c.calculateMD5Hash(filePath)
@@ -109,6 +114,7 @@ func (c *ConfigServiceImpl) saveMD5Hash() error {
 	}
 	return nil
 }
+
 func (c *ConfigServiceImpl) compareMD5Hash() (bool, error) {
 	existingHash, existingHashErr := c.getExistingMD5Hash()
 	if existingHashErr != nil {
@@ -131,14 +137,22 @@ func (c *ConfigServiceImpl) genCacheFlag(flagToMark string) error {
 	return Fs.SetSetupCacheFlag(flagToMark)
 }
 
-// Getter/Setter Methods
+func (c *ConfigServiceImpl) SetLogger() {
+	c.Logger = log.New(os.Stdout, "GoSpyder", 3)
+}
 
-func (c *ConfigServiceImpl) SetLogger()             { c.Logger = log.New(os.Stdout, "GoSpyder", 3) }
-func (c *ConfigServiceImpl) GetLogger() *log.Logger { return c.Logger }
-func (c *ConfigServiceImpl) GetConfigPath() string  { return c.FilePath }
+func (c *ConfigServiceImpl) GetLogger() *log.Logger {
+	return c.Logger
+}
+
+func (c *ConfigServiceImpl) GetConfigPath() string {
+	return c.FilePath
+}
+
 func (c *ConfigServiceImpl) GetSettings() (map[string]interface{}, error) {
 	return viper.AllSettings(), nil
 }
+
 func (c *ConfigServiceImpl) GetSetting(key string) (interface{}, error) {
 	val := viper.Get(key)
 	if val == nil {
@@ -146,27 +160,35 @@ func (c *ConfigServiceImpl) GetSetting(key string) (interface{}, error) {
 	}
 	return val, nil
 }
-func (c *ConfigServiceImpl) GetDatabaseConfig() glb.Database { return c.Database }
 
-// Boolean Methods
+func (c *ConfigServiceImpl) GetDatabaseConfig() glb.Database {
+	var dbConfig glb.Database
+	if c == nil {
+		err := c.LoadConfig()
+		if err != nil {
+			return dbConfig
+		}
+	}
+	dbConfig = c.Database
+	return dbConfig
+}
+
+func (c *ConfigServiceImpl) SetDatabaseConfig(dbConfig *glb.Database) error {
+	viper.Set("database", dbConfig)
+	c.Database = *dbConfig
+	go func(c *ConfigServiceImpl) {
+		_ = c.SaveConfig()
+	}(c)
+	return nil
+}
 
 func (c *ConfigServiceImpl) IsConfigWatchEnabled() bool {
-	if viper.ConfigFileUsed() == "" {
-		return false
-	}
-	if viper.GetBool("config.watch") {
-		return true
-	}
-	return false
-}
-func (c *ConfigServiceImpl) IsConfigLoaded() bool {
-	if viper.ConfigFileUsed() == "" {
-		return false
-	}
-	return true
+	return viper.GetBool("config.watch")
 }
 
-// ConfigServiceImpl File Methods
+func (c *ConfigServiceImpl) IsConfigLoaded() bool {
+	return viper.ConfigFileUsed() != ""
+}
 
 func (c *ConfigServiceImpl) WatchConfig(enable bool, event func(fsnotify.Event)) error {
 	if enable {
@@ -178,6 +200,7 @@ func (c *ConfigServiceImpl) WatchConfig(enable bool, event func(fsnotify.Event))
 	}
 	return nil
 }
+
 func (c *ConfigServiceImpl) SaveConfig() error {
 	if Fs == nil {
 		Fs = NewFileSystemSrv(c.FilePath)
@@ -213,6 +236,7 @@ func (c *ConfigServiceImpl) SaveConfig() error {
 
 	return nil
 }
+
 func (c *ConfigServiceImpl) ResetConfig() error {
 	viper.Reset()
 	setupErr := c.SetupConfig()
@@ -221,6 +245,7 @@ func (c *ConfigServiceImpl) ResetConfig() error {
 	}
 	return nil
 }
+
 func (c *ConfigServiceImpl) LoadConfig() error {
 	if c.Logger == nil {
 		c.SetLogger()
@@ -233,6 +258,7 @@ func (c *ConfigServiceImpl) LoadConfig() error {
 	viper.WatchConfig()
 	return nil
 }
+
 func (c *ConfigServiceImpl) SetupConfig() error {
 	dckr := NewDockerSrv()
 
@@ -240,8 +266,6 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 		if loadConfigErr := c.LoadConfig(); loadConfigErr != nil {
 			return loadConfigErr
 		}
-		dckr := NewDockerSrv()
-
 		if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
 			return dbErr
 		}
@@ -351,6 +375,11 @@ func (c *ConfigServiceImpl) SetupConfig() error {
 		return dbErr
 	}
 
+	return nil
+}
+
+func (c *ConfigServiceImpl) SetConfigProperty(key string, value interface{}) error {
+	viper.Set(key, value)
 	return nil
 }
 
@@ -466,13 +495,13 @@ func (c *ConfigServiceImpl) SetupConfigFromDbService() error {
 	return nil
 }
 
-func NewConfigSrv(configPath, keyPath, certPath string) IConfigService {
+func NewConfigSrv(configPath, keyPath, certPath string) ConfigService {
 	home, homeErr := utils.GetWorkDir()
 	if homeErr != nil {
 		fmt.Println("❌ Erro ao obter diretório de trabalho: ", homeErr)
 		os.Exit(1)
 	}
-	home = filepath.Dir(filepath.Dir(home))
+	home = filepath.Dir(home)
 
 	if configPath == "" {
 		configPath = strings.ReplaceAll(glb.DefaultGoSpyderConfigPath, "$HOME", home)

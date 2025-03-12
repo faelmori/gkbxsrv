@@ -4,6 +4,7 @@ import (
 	log "github.com/faelmori/gkbxsrv/logz"
 	kbxsrv "github.com/faelmori/gkbxsrv/services"
 	vs "github.com/faelmori/gkbxsrv/version"
+	"os"
 )
 
 var (
@@ -26,7 +27,11 @@ func initializeServicesDefault() {
 	})
 
 	//Broker service
-	_, brkrErr := kbxsrv.NewBrokerService(true)
+	port := os.Getenv("GKBXSRV_BROKER_PORT")
+	if port == "" {
+		port = "5555"
+	}
+	_, brkrErr := kbxsrv.NewBrokerService(true, port)
 	if brkrErr != nil {
 		log.Logger.Error("Error creating broker service", map[string]interface{}{
 			"context": "main",
@@ -131,9 +136,9 @@ func GetCertService() kbxsrv.CertService {
 	return crtSvc
 }
 
-func GetBrokerService() *kbxsrv.Broker {
+func NewBrokerService(port string) *kbxsrv.Broker {
 	if brkrSvc == nil {
-		_, brkrErr := kbxsrv.NewBrokerService(true)
+		_, brkrErr := kbxsrv.NewBrokerService(true, port)
 		if brkrErr != nil {
 			log.Logger.Error("Error creating broker service", map[string]interface{}{
 				"context": "main",
@@ -153,13 +158,17 @@ func GetDockerService() kbxsrv.DockerSrv {
 }
 
 func GetServices(configFile string) map[string]interface{} {
+	port := os.Getenv("GKBXSRV_BROKER_PORT")
+	if port == "" {
+		port = "5555"
+	}
 	return map[string]interface{}{
 		"fileSystem":  GetFilesystemService(configFile),
 		"config":      GetConfigService(configFile),
 		"version":     GetVersionService(),
 		"database":    GetDatabaseService(configFile),
 		"certificate": GetCertService(),
-		"broker":      GetBrokerService(),
+		"broker":      NewBrokerService(port),
 		"docker":      GetDockerService(),
 	}
 }

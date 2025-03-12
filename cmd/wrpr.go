@@ -20,7 +20,7 @@ func RegX() *GKBXSrv {
 // Alias returns the alias of the utils module.
 // Returns a string containing the alias of the module.
 func (m *GKBXSrv) Alias() string {
-	return "gkbxsrv"
+	return ""
 }
 
 // ShortDescription returns a short description of the utils module.
@@ -44,7 +44,7 @@ func (m *GKBXSrv) Usage() string {
 // Examples returns examples of usage of the utils module.
 // Returns a slice of strings containing examples of usage of the module.
 func (m *GKBXSrv) Examples() []string {
-	return []string{"gkbxsrv [command] [args]", "gkbxsrv getOrCreate [args]"}
+	return []string{"gkbxsrv utils [args]"}
 }
 
 // Active checks if the utils module is active.

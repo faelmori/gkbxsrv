@@ -4,11 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-
-	//"github.com/faelmori/logz"
-
 	"gorm.io/gorm"
-	"strconv"
 )
 
 type UserRepo interface {
@@ -16,72 +12,66 @@ type UserRepo interface {
 	FindOne(where ...interface{}) (User, error)
 	FindAll(where ...interface{}) ([]User, error)
 	Update(u User) (User, error)
-	Delete(id uint) error
+	Delete(id string) error
 	Close() error
 	List(where ...interface{}) (TableHandler, error)
 }
+
 type UserRepoImpl struct{ *gorm.DB }
 
 func NewUserRepo(db *gorm.DB) UserRepo {
-	usr := UserRepoImpl{db}
-	return &usr
+	return &UserRepoImpl{db}
 }
 
 func (g *UserRepoImpl) Create(u User) (User, error) {
-	//if usrIpml, usrIpmlOk := u.(*UserImpl); usrIpmlOk {
-	//	iUser = usrIpml
-	//} else if usrInterface, usrInterfaceOk := u.(User); usrInterfaceOk {
-	//	iUser = usrInterface.getUserObj()
-	//} else {
-	//	iUser = u.(User).getUserObj()
-	//}
-
 	iUser := u.getUserObj()
 
 	err := g.DB.Create(&iUser).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("UserImpl repository: failed to create UserImpl: %w", err)
 	}
 	return iUser, nil
 }
+
 func (g *UserRepoImpl) FindOne(where ...interface{}) (User, error) {
-	var u *UserImpl
-	err := g.DB.Where(where[0], where[1:]).First(&u).Error
+	var u UserImpl
+	err := g.DB.Where(where[0], where[1:]...).First(&u).Error
 	if err != nil {
 		return nil, fmt.Errorf("UserImpl repository: failed to find UserImpl: %w", err)
 	}
-	return u, nil
+	return &u, nil
 }
+
 func (g *UserRepoImpl) FindAll(where ...interface{}) ([]User, error) {
 	var us []UserImpl
-	err := g.DB.Where(where[0], where[1:]).Find(&us).Error
+	err := g.DB.Where(where[0], where[1:]...).Find(&us).Error
 	if err != nil {
 		return nil, fmt.Errorf("UserImpl repository: failed to find all users: %w", err)
 	}
 	ius := make([]User, len(us))
 	for i, usr := range us {
-		usrB := (User)(&usr)
-		ius[i] = usrB
+		ius[i] = &usr
 	}
 	return ius, nil
 }
-func (g *UserRepoImpl) Update(u User) (User, error) { // Update by ID
-	usr := u.(*UserImpl)
-	err := g.DB.Save(&usr).Error // Use Save to update all fields
+
+func (g *UserRepoImpl) Update(u User) (User, error) {
+	usr := u.getUserObj()
+	err := g.DB.Save(&usr).Error
 	if err != nil {
 		return nil, fmt.Errorf("UserImpl repository: failed to update UserImpl: %w", err)
 	}
-	var iUsr User = usr
-	return iUsr, nil
+	return usr, nil
 }
-func (g *UserRepoImpl) Delete(id uint) error { // Delete by ID
-	err := g.DB.Delete(&UserImpl{}, id).Error // Delete by ID
+
+func (g *UserRepoImpl) Delete(id string) error {
+	err := g.DB.Delete(&UserImpl{}, id).Error
 	if err != nil {
 		return fmt.Errorf("UserImpl repository: failed to delete UserImpl: %w", err)
 	}
 	return nil
 }
+
 func (g *UserRepoImpl) Close() error {
 	sqlDB, err := g.DB.DB()
 	if err != nil {
@@ -89,19 +79,20 @@ func (g *UserRepoImpl) Close() error {
 	}
 	return sqlDB.Close()
 }
+
 func (g *UserRepoImpl) List(where ...interface{}) (TableHandler, error) {
 	var users []UserImpl
-	err := g.DB.Where(where[0], where[1:]).Find(&users).Error
+	err := g.DB.Where(where[0], where[1:]...).Find(&users).Error
 	if err != nil {
 		return TableHandler{}, fmt.Errorf("UserImpl repository: failed to list users: %w", err)
 	}
 	tableHandlerMap := make(map[int]map[string]string)
 	for i, usr := range users {
 		tableHandlerMap[i] = map[string]string{
-			"id":       usr.GetID(),
-			"name":     usr.GetName(),
-			"username": usr.GetUsername(),
-			"email":    usr.GetEmail(),
+			"id":       usr.ID,
+			"name":     usr.Name,
+			"username": usr.Username,
+			"email":    usr.Email,
 		}
 	}
 	return TableHandler{rows: tableHandlerMap}, nil
@@ -123,236 +114,322 @@ type User interface {
 	GetBirth() string
 	GetAvatar() string
 	GetPicture() string
-	GetPremium() bool
 	GetActive() bool
-	SetName(Name string)
-	SetUsername(Username string)
-	SetPassword(Password string) (string, error)
-
-	SetEmail(Email string)
-	SetRoleID(RoleID uint)
-	SetPhone(Phone string)
-	SetDocument(Document string)
-	SetAddress(Address string)
-	SetCity(City string)
-	SetState(State string)
-	SetCountry(Country string)
-	SetZip(Zip string)
-	SetBirth(Birth string)
-	SetAvatar(Avatar string)
-	SetPicture(Picture string)
-	SetPremium(Premium bool)
-	SetActive(Active bool)
+	SetName(name string)
+	SetUsername(username string)
+	SetPassword(password string) error
+	SetEmail(email string)
+	SetRoleID(roleID uint)
+	SetPhone(phone string)
+	SetDocument(document string)
+	SetAddress(address string)
+	SetCity(city string)
+	SetState(state string)
+	SetCountry(country string)
+	SetZip(zip string)
+	SetBirth(birth string)
+	SetAvatar(avatar string)
+	SetPicture(picture string)
+	SetActive(active bool)
 	CheckPasswordHash(password string) bool
 	Sanitize()
 	Validate() error
-
 	getUserObj() *UserImpl
 }
 
 type UserImpl struct {
-	ID       string `gorm:"required;primaryKey" json:"id" form:"id"`
-	Name     string `gorm:"required;not null" json:"name" form:"name"`
-	Username string `gorm:"required;unique" json:"username" form:"username"`
-	Password string `gorm:"required;not null" json:"password" form:"password"`
-	Email    string `gorm:"required;unique" json:"email" form:"email"`
-	Phone    string `gorm:"omitempty:default:null" json:"phone" form:"phone"`
-	RoleID   uint   `gorm:"omitempty;default:2" json:"role_id" form:"role_id:2"`
-	Document string `gorm:"omitempty" json:"document" form:"document"`
-	Address  string `gorm:"omitempty" json:"address" form:"address"`
-	City     string `gorm:"omitempty" json:"city" form:"city"`
-	State    string `gorm:"omitempty" json:"state" form:"state"`
-	Country  string `gorm:"omitempty" json:"country" form:"country"`
-	Zip      string `gorm:"omitempty" json:"zip" form:"zip"`
-	Birth    string `gorm:"omitempty" json:"birth" form:"birth"`
-	Avatar   string `gorm:"omitempty" json:"avatar" form:"avatar"`
-	Picture  string `gorm:"omitempty" json:"picture" form:"picture"`
-	Premium  bool   `gorm:"default:false" json:"premium" form:"premium;"`
-	Active   bool   `gorm:"default:true" json:"active" form:"active"`
+	ID       string `gorm:"type:uuid;primaryKey" json:"id"`
+	Name     string `gorm:"type:varchar(255);not null" json:"name"`
+	Username string `gorm:"type:varchar(255);unique;not null" json:"username"`
+	Password string `gorm:"type:varchar(255);not null" json:"password"`
+	Email    string `gorm:"type:varchar(255);unique;not null" json:"email"`
+	Phone    string `gorm:"type:varchar(20)" json:"phone"`
+	RoleID   uint   `gorm:"type:integer;default:2" json:"role_id"`
+	Document string `gorm:"type:varchar(20)" json:"document"`
+	Address  string `gorm:"type:text" json:"address"`
+	City     string `gorm:"type:varchar(100)" json:"city"`
+	State    string `gorm:"type:varchar(50)" json:"state"`
+	Country  string `gorm:"type:varchar(50)" json:"country"`
+	Zip      string `gorm:"type:varchar(20)" json:"zip"`
+	Birth    string `gorm:"type:date" json:"birth"`
+	Avatar   string `gorm:"type:varchar(255)" json:"avatar"`
+	Picture  string `gorm:"type:varchar(255)" json:"picture"`
+	Active   bool   `gorm:"type:boolean;default:true" json:"active"`
 }
 
-func (u *UserImpl) TableName() string { return "users" }
+func (u *UserImpl) TableName() string {
+	return "users"
+}
+
 func (u *UserImpl) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.ID == "" {
 		u.ID = uuid.New().String()
 	}
 	if u.Password == "" {
-		return ErrPasswordRequired
+		return fmt.Errorf("password is required")
 	}
-	hash, hashErr := u.SetPassword(u.Password)
+	hash, hashErr := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if hashErr != nil {
 		return hashErr
 	}
-	tx.Statement.Set("password", hash)
+	u.Password = string(hash)
 	return nil
 }
+
 func (u *UserImpl) BeforeUpdate(tx *gorm.DB) (err error) {
-	var cost int
-	var costErr error
 	if u.Password == "" {
-		return bcrypt.ErrMismatchedHashAndPassword
+		return fmt.Errorf("password is required")
 	}
-	if cPass, blPass := tx.Statement.Get("password"); blPass {
-		cost, costErr = bcrypt.Cost([]byte(cPass.(string)))
-		if costErr != nil || cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
-			return bcrypt.InvalidCostError(cost)
-		}
+	hash, hashErr := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	if hashErr != nil {
+		return hashErr
 	}
+	u.Password = string(hash)
 	return nil
 }
-func (u *UserImpl) AfterFind(_ *gorm.DB) (err error) { return nil }
-func (u *UserImpl) AfterSave(_ *gorm.DB) (err error) {
+
+func (u *UserImpl) AfterFind(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-func (u *UserImpl) AfterCreate(_ *gorm.DB) (err error) {
+
+func (u *UserImpl) AfterSave(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-func (u *UserImpl) AfterUpdate(_ *gorm.DB) (err error) {
+
+func (u *UserImpl) AfterCreate(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-func (u *UserImpl) AfterDelete(_ *gorm.DB) (err error) {
+
+func (u *UserImpl) AfterUpdate(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
+
+func (u *UserImpl) AfterDelete(tx *gorm.DB) (err error) {
+	u.Sanitize()
+	return nil
+}
+
 func (u *UserImpl) String() string {
 	return fmt.Sprintf("User<ID: %s, Name: %s, Username: %s, Email: %s>", u.ID, u.Name, u.Username, u.Email)
 }
-func (u *UserImpl) SetID(id uuid.UUID)          { u.ID = id.String() }
-func (u *UserImpl) SetName(name string)         { u.Name = name }
-func (u *UserImpl) SetUsername(username string) { u.Username = username }
-func (u *UserImpl) SetEmail(email string)       { u.Email = email }
-func (u *UserImpl) SetRoleID(roleID uint)       { u.RoleID = roleID }
-func (u *UserImpl) SetPhone(phone string)       { u.Phone = phone }
-func (u *UserImpl) SetDocument(document string) { u.Document = document }
-func (u *UserImpl) SetAddress(address string)   { u.Address = address }
-func (u *UserImpl) SetCity(city string)         { u.City = city }
-func (u *UserImpl) SetState(state string)       { u.State = state }
-func (u *UserImpl) SetCountry(country string)   { u.Country = country }
-func (u *UserImpl) SetZip(zip string)           { u.Zip = zip }
-func (u *UserImpl) SetBirth(birth string)       { u.Birth = birth }
-func (u *UserImpl) SetAvatar(avatar string)     { u.Avatar = avatar }
-func (u *UserImpl) SetPicture(picture string)   { u.Picture = picture }
-func (u *UserImpl) SetPremium(premium bool)     { u.Premium = premium }
-func (u *UserImpl) SetActive(active bool)       { u.Active = active }
 
-func (u *UserImpl) GetID() string       { return u.ID }
-func (u *UserImpl) GetName() string     { return u.Name }
-func (u *UserImpl) GetUsername() string { return u.Username }
-func (u *UserImpl) GetEmail() string    { return u.Email }
-func (u *UserImpl) GetRoleID() uint     { return u.RoleID }
-func (u *UserImpl) GetPhone() string    { return u.Phone }
-func (u *UserImpl) GetDocument() string { return u.Document }
-func (u *UserImpl) GetAddress() string  { return u.Address }
-func (u *UserImpl) GetCity() string     { return u.City }
-func (u *UserImpl) GetState() string    { return u.State }
-func (u *UserImpl) GetCountry() string  { return u.Country }
-func (u *UserImpl) GetZip() string      { return u.Zip }
-func (u *UserImpl) GetBirth() string    { return u.Birth }
-func (u *UserImpl) GetAvatar() string   { return u.Avatar }
-func (u *UserImpl) GetPicture() string  { return u.Picture }
-func (u *UserImpl) GetPremium() bool    { return u.Premium }
-func (u *UserImpl) GetActive() bool     { return u.Active }
-func (u *UserImpl) SetPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	u.Password = string(bytes)
-	return u.Password, err
+func (u *UserImpl) SetName(name string) {
+	u.Name = name
 }
-func (u *UserImpl) CheckPasswordHash(password string) bool {
-	if password == "" {
-		//_ = logz.WarnLog("UserImpl: password is empty", "GDBase")
-		return false
-	}
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+
+func (u *UserImpl) SetUsername(username string) {
+	u.Username = username
+}
+
+func (u *UserImpl) SetPassword(password string) error {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		//_ = logz.DebugLog(fmt.Sprintf("Password check error: %s", err), "GDBase")
+		return err
 	}
+	u.Password = string(bytes)
+	return nil
+}
+
+func (u *UserImpl) SetEmail(email string) {
+	u.Email = email
+}
+
+func (u *UserImpl) SetRoleID(roleID uint) {
+	u.RoleID = roleID
+}
+
+func (u *UserImpl) SetPhone(phone string) {
+	u.Phone = phone
+}
+
+func (u *UserImpl) SetDocument(document string) {
+	u.Document = document
+}
+
+func (u *UserImpl) SetAddress(address string) {
+	u.Address = address
+}
+
+func (u *UserImpl) SetCity(city string) {
+	u.City = city
+}
+
+func (u *UserImpl) SetState(state string) {
+	u.State = state
+}
+
+func (u *UserImpl) SetCountry(country string) {
+	u.Country = country
+}
+
+func (u *UserImpl) SetZip(zip string) {
+	u.Zip = zip
+}
+
+func (u *UserImpl) SetBirth(birth string) {
+	u.Birth = birth
+}
+
+func (u *UserImpl) SetAvatar(avatar string) {
+	u.Avatar = avatar
+}
+
+func (u *UserImpl) SetPicture(picture string) {
+	u.Picture = picture
+}
+
+func (u *UserImpl) SetActive(active bool) {
+	u.Active = active
+}
+
+func (u *UserImpl) GetID() string {
+	return u.ID
+}
+
+func (u *UserImpl) GetName() string {
+	return u.Name
+}
+
+func (u *UserImpl) GetUsername() string {
+	return u.Username
+}
+
+func (u *UserImpl) GetEmail() string {
+	return u.Email
+}
+
+func (u *UserImpl) GetRoleID() uint {
+	return u.RoleID
+}
+
+func (u *UserImpl) GetPhone() string {
+	return u.Phone
+}
+
+func (u *UserImpl) GetDocument() string {
+	return u.Document
+}
+
+func (u *UserImpl) GetAddress() string {
+	return u.Address
+}
+
+func (u *UserImpl) GetCity() string {
+	return u.City
+}
+
+func (u *UserImpl) GetState() string {
+	return u.State
+}
+
+func (u *UserImpl) GetCountry() string {
+	return u.Country
+}
+
+func (u *UserImpl) GetZip() string {
+	return u.Zip
+}
+
+func (u *UserImpl) GetBirth() string {
+	return u.Birth
+}
+
+func (u *UserImpl) GetAvatar() string {
+	return u.Avatar
+}
+
+func (u *UserImpl) GetPicture() string {
+	return u.Picture
+}
+
+func (u *UserImpl) GetActive() bool {
+	return u.Active
+}
+
+func (u *UserImpl) CheckPasswordHash(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	return err == nil
 }
+
 func (u *UserImpl) Sanitize() {
 	u.Password = ""
 }
+
 func (u *UserImpl) Validate() error {
 	if u.Name == "" {
 		return &ValidationError{Field: "name", Message: "Name is required"}
 	}
 	if u.Username == "" {
-		return ErrUsernameRequired
+		return &ValidationError{Field: "username", Message: "Username is required"}
 	}
 	if u.Password == "" {
-		return ErrPasswordRequired
+		return &ValidationError{Field: "password", Message: "Password is required"}
 	}
 	if u.Email == "" {
-		return ErrEmailRequired
+		return &ValidationError{Field: "email", Message: "Email is required"}
 	}
 	return nil
 }
-func (u *UserImpl) getUserObj() *UserImpl { return u }
 
-func UserFactory(userData map[string]any) User {
-	if userData == nil {
-		userData = make(map[string]any)
-	}
-	return convertMapToUser(userData)
+func (u *UserImpl) getUserObj() *UserImpl {
+	return u
 }
-func convertMapToUser(userData map[string]any) User {
+
+func UserFactory(userData map[string]interface{}) User {
 	var u UserImpl
-	var roleId uint
-	if userData["role_id"] == nil {
-		roleId = uint(2)
-	} else {
-		rlID, roleIdErr := strconv.ParseUint(userData["role_id"].(string), 10, 32)
-		if roleIdErr != nil {
-			//_ = logz.WarnLog(fmt.Sprintf("UserImpl factory: failed to convert role_id to int: %v", roleIdErr), "GDBase")
-			roleId = uint(2)
-		} else {
-			roleId = uint(rlID)
-		}
-	}
 	if userData != nil {
-		u = UserImpl{
-			Name:     convStrField(userData["name"]),
-			Username: convStrField(userData["username"]),
-			Password: convStrField(userData["password"]),
-			Email:    convStrField(userData["email"]),
-			RoleID:   roleId,
-			Phone:    convStrField(userData["phone"]),
-			Document: convStrField(userData["document"]),
-			Address:  convStrField(userData["address"]),
-			City:     convStrField(userData["city"]),
-			State:    convStrField(userData["state"]),
-			Country:  convStrField(userData["country"]),
-			Zip:      convStrField(userData["zip"]),
-			Birth:    convStrField(userData["birth"]),
-			Avatar:   convStrField(userData["avatar"]),
-			Picture:  convStrField(userData["picture"]),
-			Premium:  convStrField(userData["premium"]) == "true",
-			Active:   convStrField(userData["active"]) == "true",
+		if name, ok := userData["name"].(string); ok {
+			u.Name = name
 		}
-	} else {
-		u = UserImpl{}
+		if username, ok := userData["username"].(string); ok {
+			u.Username = username
+		}
+		if password, ok := userData["password"].(string); ok {
+			u.Password = password
+		}
+		if email, ok := userData["email"].(string); ok {
+			u.Email = email
+		}
+		if roleID, ok := userData["role_id"].(uint); ok {
+			u.RoleID = roleID
+		}
+		if phone, ok := userData["phone"].(string); ok {
+			u.Phone = phone
+		}
+		if document, ok := userData["document"].(string); ok {
+			u.Document = document
+		}
+		if address, ok := userData["address"].(string); ok {
+			u.Address = address
+		}
+		if city, ok := userData["city"].(string); ok {
+			u.City = city
+		}
+		if state, ok := userData["state"].(string); ok {
+			u.State = state
+		}
+		if country, ok := userData["country"].(string); ok {
+			u.Country = country
+		}
+		if zip, ok := userData["zip"].(string); ok {
+			u.Zip = zip
+		}
+		if birth, ok := userData["birth"].(string); ok {
+			u.Birth = birth
+		}
+		if avatar, ok := userData["avatar"].(string); ok {
+			u.Avatar = avatar
+		}
+		if picture, ok := userData["picture"].(string); ok {
+			u.Picture = picture
+		}
+		if active, ok := userData["active"].(bool); ok {
+			u.Active = active
+		}
 	}
 	return &u
-}
-func convStrField(field interface{}) string {
-	if field == nil {
-		return ""
-	}
-	var strField string
-	var strOk bool
-	strField, strOk = field.(string)
-	if !strOk {
-		if stField, stOk := field.(*string); stOk {
-			strField = *stField
-		} else {
-			if intField, intOk := field.(int); intOk {
-				strField = strconv.Itoa(intField)
-			} else {
-				strField = ""
-			}
-		}
-	}
-	return strField
 }

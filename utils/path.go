@@ -279,7 +279,7 @@ func GetWorkDir() (string, error) {
 				homeDir, _ = os.Getwd()
 			}
 		}
-		homeDir = filepath.Join(homeDir, ".kubex", "kbx")
+		homeDir = filepath.Join(homeDir, ".kubex")
 		ensureHomeDirErr := EnsureDir(homeDir, 0777, []string{})
 		if ensureHomeDirErr != nil {
 			return "", ensureHomeDirErr

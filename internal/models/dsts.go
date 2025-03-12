@@ -13,15 +13,15 @@ type Model interface {
 
 var ModelList = []interface{}{
 	&UserImpl{},
-	&productImpl{},
+	&Product{},
 	&CustomerImpl{},
-	&OrderImpl{},
+	&Order{},
 }
 var ModelRegistryMap = map[string]reflect.Type{
 	strings.ToLower("User"):     reflect.TypeOf(UserImpl{}),
-	strings.ToLower("Product"):  reflect.TypeOf(productImpl{}),
+	strings.ToLower("Product"):  reflect.TypeOf(Product{}),
 	strings.ToLower("Customer"): reflect.TypeOf(CustomerImpl{}),
-	strings.ToLower("Order"):    reflect.TypeOf(OrderImpl{}),
+	strings.ToLower("Order"):    reflect.TypeOf(Order{}),
 	strings.ToLower("Ping"):     reflect.TypeOf(PingImpl{}),
 }
 

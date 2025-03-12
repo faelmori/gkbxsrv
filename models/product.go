@@ -5,10 +5,10 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductRepo struct{ models.ProductRepo }
-type Product struct{ models.Product }
+type ProductRepo = models.ProductRepo
+type Product = models.Product
 
-func NewProductRepo(db *gorm.DB) *ProductRepo { return &ProductRepo{models.NewGormProductRepo(db)} }
+func NewProductRepo(db *gorm.DB) ProductRepo { return models.NewGormProductRepo(db) }
 func ProductFactory(name, depart, category string, price, cost float64, stock, reserve, balance int) *Product {
-	return &Product{models.ProductFactory(name, depart, category, price, cost, stock, reserve, balance)}
+	return &Product{}
 }

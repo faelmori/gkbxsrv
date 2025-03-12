@@ -11,13 +11,15 @@ var (
 	logger  logz.Logger
 )
 
+var Logger = getLogger()
+
 func getLogger() logz.Logger {
 	if logger == nil {
-		logger = logz.NewLogger("GoSpyder")
+		logger = logz.NewLogger("GKbxSRV")
 		logzCfg = logger.GetConfig()
 		logLevel := os.Getenv("LOG_LEVEL")
 		if logLevel == "" {
-			logLevel = "INFO"
+			logLevel = "DEBUG"
 		}
 		logzCfg.SetLevel(logz.LogLevel(logLevel))
 		lf := os.Getenv("LOG_FORMAT")
@@ -26,13 +28,19 @@ func getLogger() logz.Logger {
 		}
 		logzCfg.SetFormat(logz.LogFormat(lf))
 		lo := os.Getenv("LOG_OUTPUT")
+		var hmErr error
 		if lo == "" {
-			lo = filepath.Join(os.Getenv("HOME"), ".kubex/logz/gkbxsrv.log")
+			hm := os.Getenv("HOME")
+			if hm == "" {
+				hm, hmErr = os.UserCacheDir()
+				if hmErr != nil {
+					hm = "/tmp"
+				}
+			}
+			lo = filepath.Join(hm, ".kubex/logz/gkbxsrv.log")
 		}
 		logzCfg.SetOutput(lo)
 		logger.SetConfig(logzCfg)
 	}
 	return logger
 }
-
-var Logger = getLogger()
