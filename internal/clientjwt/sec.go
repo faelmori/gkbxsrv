@@ -27,7 +27,7 @@ type TokenClientImpl struct {
 	dbSrv                 s.DatabaseService
 	fsSrv                 s.FilesystemService
 	crtSrv                *s.CertService
-	TokenService          *i.TokenService
+	TokenService          i.TokenService
 	IDExpirationSecs      int64
 	RefreshExpirationSecs int64
 }
