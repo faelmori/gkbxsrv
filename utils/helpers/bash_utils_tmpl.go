@@ -2,6 +2,40 @@ package helpers
 
 const cdxBashEnvTemplate = `#!/usr/bin/env bash
 
+function show_help() {
+    echo "\nUsage: mri [command]\n"
+    echo "Available commands:\n"
+    echo "  help                    📖 Show this help message"
+    echo "  handle_apt_unmet        🔧 Fix broken packages in APT"
+    echo "  installer               📦 Interactive installer (APT/DPKG)"
+    echo "  la                      📂 Enhanced file listing"
+    echo "  get_public_ip           🌍 Get public IP"
+    echo "  xcp                     📋 Copy output to clipboard (XClip)"
+    echo "  reloadrc                🔄 Reload shell configuration"
+    echo "  cls                     🧹 Clear the screen"
+    echo "  wtf_is_that             🔍 Find information about a command/program"
+    echo "  upgrade-fix             🔄 Update and clean the system (enhanced)"
+    echo "  safe_upgrade            🚧 Ask before updating the system"
+    echo "\nExample: mri la"
+}
+
+function mri() {
+    case "$1" in
+        help) show_help ;;
+        handle_apt_unmet) mri_handle_apt_unmet ;;
+        installer) mri_installer ;;
+        la) la ;;
+        get_public_ip) get_public_ip ;;
+        xcp) shift; xcp "$@" ;;
+        reloadrc) reloadrc ;;
+        cls) cls ;;
+        wtf_is_that) shift; wtf_is_that "$@" ;;
+        upgrade-fix) upgrade-fix ;;
+        safe_upgrade) safe_upgrade ;;
+        *) echo "❌ Unknown command. Use 'mri help'." ;;
+    esac
+}
+
 ## 🚀 Auto-loading Node.js (via NVM)
 if [[ -d "$HOME/.nvm" ]]; then
   export NVM_DIR="$HOME/.nvm"

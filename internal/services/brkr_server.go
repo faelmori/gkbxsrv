@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 	"github.com/faelmori/gkbxsrv/internal/models"
-	"github.com/faelmori/gkbxsrv/logz"
+	"github.com/faelmori/logz"
 	"github.com/goccy/go-json"
 	"github.com/pebbe/zmq4"
 	"os"
@@ -108,18 +108,18 @@ func NewBroker(verbose bool) (*BrokerImpl, error) {
 	}
 
 	if broker.brokerInfo == nil {
-		logz.Logger.Error("Error creating broker", nil)
+		logz.Error("Error creating broker", nil)
 		return nil, fmt.Errorf("error creating broker: Empty broker info")
 	}
 	data, marshalErr := json.Marshal(broker.brokerInfo.GetBrokerInfo())
 	if marshalErr != nil {
-		logz.Logger.Error("Error marshalling broker info", map[string]interface{}{
+		logz.Error("Error marshalling broker info", map[string]interface{}{
 			"error": marshalErr,
 		})
 		return nil, marshalErr
 	}
 	if writeErr := os.WriteFile(broker.brokerInfo.GetPath(), data, 0644); writeErr != nil {
-		logz.Logger.Error("Error writing broker file", map[string]interface{}{
+		logz.Error("Error writing broker file", map[string]interface{}{
 			"error": writeErr,
 		})
 		return nil, writeErr
@@ -140,10 +140,10 @@ func NewBroker(verbose bool) (*BrokerImpl, error) {
 }
 
 func (b *BrokerImpl) startProxy() {
-	logz.Logger.Info("Starting proxy between FRONTEND and BACKEND...", nil)
+	logz.Info("Starting proxy between FRONTEND and BACKEND...", nil)
 	err := zmq4.Proxy(b.frontend, b.backend, nil)
 	if err != nil {
-		logz.Logger.Error("Error in proxy between FRONTEND and BACKEND", map[string]interface{}{
+		logz.Error("Error in proxy between FRONTEND and BACKEND", map[string]interface{}{
 			"error": err,
 		})
 	}
@@ -151,14 +151,14 @@ func (b *BrokerImpl) startProxy() {
 func (b *BrokerImpl) workerTask() {
 	worker, err := b.context.NewSocket(zmq4.DEALER)
 	if err != nil {
-		logz.Logger.Error("Error creating socket for worker", map[string]interface{}{
+		logz.Error("Error creating socket for worker", map[string]interface{}{
 			"error": err,
 		})
 		return
 	}
 
 	if connErr := worker.Connect("inproc://backend"); connErr != nil {
-		logz.Logger.Error("Error connecting worker to BACKEND", map[string]interface{}{
+		logz.Error("Error connecting worker to BACKEND", map[string]interface{}{
 			"context":  "gkbxsrv",
 			"showDate": true,
 			"action":   "workerTask",
@@ -170,7 +170,7 @@ func (b *BrokerImpl) workerTask() {
 	for {
 		msg, _ := worker.RecvMessage(0)
 		if len(msg) < 2 {
-			logz.Logger.Debug("Malformed message received in WORKER", nil)
+			logz.Debug("Malformed message received in WORKER", nil)
 			continue
 		}
 
@@ -179,7 +179,7 @@ func (b *BrokerImpl) workerTask() {
 		payload := msg[len(msg)-1]
 		deserializedModel, deserializedModelErr := models.NewModelRegistryFromSerialized([]byte(payload))
 		if deserializedModelErr != nil {
-			logz.Logger.Error("Error deserializing payload in WORKER", map[string]interface{}{
+			logz.Error("Error deserializing payload in WORKER", map[string]interface{}{
 				"context": "workerTask",
 				"payload": payload,
 				"error":   deserializedModelErr.Error(),
@@ -187,14 +187,14 @@ func (b *BrokerImpl) workerTask() {
 			continue
 		}
 
-		logz.Logger.Debug("Payload deserialized in WORKER", map[string]interface{}{
+		logz.Debug("Payload deserialized in WORKER", map[string]interface{}{
 			"context": "workerTask",
 			"payload": deserializedModel.ToModel(),
 		})
 
 		tp, tpErr := deserializedModel.GetType()
 		if tpErr != nil {
-			logz.Logger.Error("Error getting payload type in WORKER", map[string]interface{}{
+			logz.Error("Error getting payload type in WORKER", map[string]interface{}{
 				"context":           "workerTask",
 				"tp":                tp,
 				"error":             tpErr,
@@ -203,7 +203,7 @@ func (b *BrokerImpl) workerTask() {
 			continue
 		}
 
-		logz.Logger.Debug("Payload type in WORKER", map[string]interface{}{
+		logz.Debug("Payload type in WORKER", map[string]interface{}{
 			"context": "workerTask",
 			"tp":      tp.Name(),
 			"payload": deserializedModel.ToModel(),
@@ -212,19 +212,19 @@ func (b *BrokerImpl) workerTask() {
 		if tp.Name() == "PingImpl" {
 			response := fmt.Sprintf(`{"type":"ping","data":{"ping":"%v"}}`, "pong")
 			if _, workerSendMessageErr := worker.SendMessage(id, response); workerSendMessageErr != nil {
-				logz.Logger.Error("Error sending response to BACKEND in WORKER", map[string]interface{}{
+				logz.Error("Error sending response to BACKEND in WORKER", map[string]interface{}{
 					"context":  "workerTask",
 					"response": response,
 					"error":    workerSendMessageErr,
 				})
 			} else {
-				logz.Logger.Debug("Response sent to BACKEND in WORKER", map[string]interface{}{
+				logz.Debug("Response sent to BACKEND in WORKER", map[string]interface{}{
 					"context":  "workerTask",
 					"response": response,
 				})
 			}
 		} else {
-			logz.Logger.Debug("Unknown command in WORKER", map[string]interface{}{
+			logz.Debug("Unknown command in WORKER", map[string]interface{}{
 				"context": "workerTask",
 				"type":    tp.Name(),
 				"payload": deserializedModel.ToModel(),
@@ -242,7 +242,7 @@ func (b *BrokerImpl) handleHeartbeats() {
 		now := time.Now()
 		for id, worker := range b.workers {
 			if now.After(worker.expiry) {
-				logz.Logger.Warn(fmt.Sprintf("Expired worker: %s", id), nil)
+				logz.Warn(fmt.Sprintf("Expired worker: %s", id), nil)
 				delete(b.workers, id)
 			}
 		}
@@ -255,5 +255,5 @@ func (b *BrokerImpl) Stop() {
 	_ = b.frontend.Close()
 	_ = b.backend.Close()
 	_ = b.context.Term()
-	logz.Logger.Info("Broker stopped", nil)
+	logz.Info("Broker stopped", nil)
 }

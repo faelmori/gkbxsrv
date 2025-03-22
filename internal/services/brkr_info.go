@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"github.com/faelmori/gkbxsrv/logz"
+	"github.com/faelmori/logz"
 	"os"
 	"path/filepath"
 	"sync"
@@ -28,7 +28,7 @@ type BrokerInfoLock struct {
 func NewBrokerInfo(name, port string) *BrokerInfoLock {
 	path, pathErr := getBrokersPath()
 	if pathErr != nil {
-		logz.Logger.Error("Error getting brokers path", map[string]interface{}{
+		logz.Error("Error getting brokers path", map[string]interface{}{
 			"error": pathErr,
 		})
 		return nil
@@ -74,7 +74,7 @@ func (bi *BrokerInfoLock) trap() {
 		bi.Unlock()
 		if bi.path != "" {
 			if rmErr := os.Remove(bi.path); rmErr != nil {
-				logz.Logger.Error("Error removing broker file", map[string]interface{}{
+				logz.Error("Error removing broker file", map[string]interface{}{
 					"error": rmErr,
 				})
 			}

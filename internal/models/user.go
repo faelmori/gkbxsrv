@@ -16,7 +16,6 @@ type UserRepo interface {
 	Close() error
 	List(where ...interface{}) (TableHandler, error)
 }
-
 type UserRepoImpl struct{ *gorm.DB }
 
 func NewUserRepo(db *gorm.DB) UserRepo {
@@ -32,7 +31,6 @@ func (g *UserRepoImpl) Create(u User) (User, error) {
 	}
 	return iUser, nil
 }
-
 func (g *UserRepoImpl) FindOne(where ...interface{}) (User, error) {
 	var u UserImpl
 	err := g.DB.Where(where[0], where[1:]...).First(&u).Error
@@ -41,7 +39,6 @@ func (g *UserRepoImpl) FindOne(where ...interface{}) (User, error) {
 	}
 	return &u, nil
 }
-
 func (g *UserRepoImpl) FindAll(where ...interface{}) ([]User, error) {
 	var us []UserImpl
 	err := g.DB.Where(where[0], where[1:]...).Find(&us).Error
@@ -54,7 +51,6 @@ func (g *UserRepoImpl) FindAll(where ...interface{}) ([]User, error) {
 	}
 	return ius, nil
 }
-
 func (g *UserRepoImpl) Update(u User) (User, error) {
 	usr := u.getUserObj()
 	err := g.DB.Save(&usr).Error
@@ -63,7 +59,6 @@ func (g *UserRepoImpl) Update(u User) (User, error) {
 	}
 	return usr, nil
 }
-
 func (g *UserRepoImpl) Delete(id string) error {
 	err := g.DB.Delete(&UserImpl{}, id).Error
 	if err != nil {
@@ -71,7 +66,6 @@ func (g *UserRepoImpl) Delete(id string) error {
 	}
 	return nil
 }
-
 func (g *UserRepoImpl) Close() error {
 	sqlDB, err := g.DB.DB()
 	if err != nil {
@@ -79,7 +73,6 @@ func (g *UserRepoImpl) Close() error {
 	}
 	return sqlDB.Close()
 }
-
 func (g *UserRepoImpl) List(where ...interface{}) (TableHandler, error) {
 	var users []UserImpl
 	err := g.DB.Where(where[0], where[1:]...).Find(&users).Error
@@ -136,7 +129,6 @@ type User interface {
 	Validate() error
 	getUserObj() *UserImpl
 }
-
 type UserImpl struct {
 	ID       string `gorm:"type:uuid;primaryKey" json:"id"`
 	Name     string `gorm:"type:varchar(255);not null" json:"name"`
@@ -160,7 +152,6 @@ type UserImpl struct {
 func (u *UserImpl) TableName() string {
 	return "users"
 }
-
 func (u *UserImpl) BeforeCreate(tx *gorm.DB) (err error) {
 	if u.ID == "" {
 		u.ID = uuid.New().String()
@@ -175,7 +166,6 @@ func (u *UserImpl) BeforeCreate(tx *gorm.DB) (err error) {
 	u.Password = string(hash)
 	return nil
 }
-
 func (u *UserImpl) BeforeUpdate(tx *gorm.DB) (err error) {
 	if u.Password == "" {
 		return fmt.Errorf("password is required")
@@ -187,44 +177,35 @@ func (u *UserImpl) BeforeUpdate(tx *gorm.DB) (err error) {
 	u.Password = string(hash)
 	return nil
 }
-
 func (u *UserImpl) AfterFind(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-
 func (u *UserImpl) AfterSave(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-
 func (u *UserImpl) AfterCreate(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-
 func (u *UserImpl) AfterUpdate(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-
 func (u *UserImpl) AfterDelete(tx *gorm.DB) (err error) {
 	u.Sanitize()
 	return nil
 }
-
 func (u *UserImpl) String() string {
 	return fmt.Sprintf("User<ID: %s, Name: %s, Username: %s, Email: %s>", u.ID, u.Name, u.Username, u.Email)
 }
-
 func (u *UserImpl) SetName(name string) {
 	u.Name = name
 }
-
 func (u *UserImpl) SetUsername(username string) {
 	u.Username = username
 }
-
 func (u *UserImpl) SetPassword(password string) error {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -233,132 +214,100 @@ func (u *UserImpl) SetPassword(password string) error {
 	u.Password = string(bytes)
 	return nil
 }
-
 func (u *UserImpl) SetEmail(email string) {
 	u.Email = email
 }
-
 func (u *UserImpl) SetRoleID(roleID uint) {
 	u.RoleID = roleID
 }
-
 func (u *UserImpl) SetPhone(phone string) {
 	u.Phone = phone
 }
-
 func (u *UserImpl) SetDocument(document string) {
 	u.Document = document
 }
-
 func (u *UserImpl) SetAddress(address string) {
 	u.Address = address
 }
-
 func (u *UserImpl) SetCity(city string) {
 	u.City = city
 }
-
 func (u *UserImpl) SetState(state string) {
 	u.State = state
 }
-
 func (u *UserImpl) SetCountry(country string) {
 	u.Country = country
 }
-
 func (u *UserImpl) SetZip(zip string) {
 	u.Zip = zip
 }
-
 func (u *UserImpl) SetBirth(birth string) {
 	u.Birth = birth
 }
-
 func (u *UserImpl) SetAvatar(avatar string) {
 	u.Avatar = avatar
 }
-
 func (u *UserImpl) SetPicture(picture string) {
 	u.Picture = picture
 }
-
 func (u *UserImpl) SetActive(active bool) {
 	u.Active = active
 }
-
 func (u *UserImpl) GetID() string {
 	return u.ID
 }
-
 func (u *UserImpl) GetName() string {
 	return u.Name
 }
-
 func (u *UserImpl) GetUsername() string {
 	return u.Username
 }
-
 func (u *UserImpl) GetEmail() string {
 	return u.Email
 }
-
 func (u *UserImpl) GetRoleID() uint {
 	return u.RoleID
 }
-
 func (u *UserImpl) GetPhone() string {
 	return u.Phone
 }
-
 func (u *UserImpl) GetDocument() string {
 	return u.Document
 }
-
 func (u *UserImpl) GetAddress() string {
 	return u.Address
 }
-
 func (u *UserImpl) GetCity() string {
 	return u.City
 }
-
 func (u *UserImpl) GetState() string {
 	return u.State
 }
-
 func (u *UserImpl) GetCountry() string {
 	return u.Country
 }
-
 func (u *UserImpl) GetZip() string {
 	return u.Zip
 }
-
 func (u *UserImpl) GetBirth() string {
 	return u.Birth
 }
-
 func (u *UserImpl) GetAvatar() string {
 	return u.Avatar
 }
-
 func (u *UserImpl) GetPicture() string {
 	return u.Picture
 }
-
 func (u *UserImpl) GetActive() bool {
 	return u.Active
 }
-
 func (u *UserImpl) CheckPasswordHash(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	return err == nil
 }
-
 func (u *UserImpl) Sanitize() {
 	u.Password = ""
 }
-
 func (u *UserImpl) Validate() error {
 	if u.Name == "" {
 		return &ValidationError{Field: "name", Message: "Name is required"}
@@ -374,7 +323,6 @@ func (u *UserImpl) Validate() error {
 	}
 	return nil
 }
-
 func (u *UserImpl) getUserObj() *UserImpl {
 	return u
 }

@@ -1,9 +1,9 @@
 package gkbxsrv
 
 import (
-	log "github.com/faelmori/gkbxsrv/logz"
 	kbxsrv "github.com/faelmori/gkbxsrv/services"
 	vs "github.com/faelmori/gkbxsrv/version"
+	log "github.com/faelmori/logz"
 	"os"
 )
 
@@ -20,7 +20,7 @@ var (
 func initializeServicesDefault() {
 	vSvc = vs.NewVersionService()
 	cv := vSvc.GetCurrentVersion()
-	log.Logger.Info("Starting gkbxsrv...", map[string]interface{}{
+	log.Info("Starting gkbxsrv...", map[string]interface{}{
 		"context": "main",
 		"action":  "start",
 		"version": cv,
@@ -33,7 +33,7 @@ func initializeServicesDefault() {
 	}
 	_, brkrErr := kbxsrv.NewBrokerService(true, port)
 	if brkrErr != nil {
-		log.Logger.Error("Error creating broker service", map[string]interface{}{
+		log.Error("Error creating broker service", map[string]interface{}{
 			"context": "main",
 			"action":  "newBrokerService",
 			"error":   brkrErr,
@@ -50,7 +50,7 @@ func initializeServicesDefault() {
 	cnfgSvc = kbxsrv.NewConfigService(fsSvc.GetConfigFilePath(), fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
 	loadCfgErr := cnfgSvc.LoadConfig()
 	if loadCfgErr != nil {
-		log.Logger.Error("Error loading configuration", map[string]interface{}{
+		log.Error("Error loading configuration", map[string]interface{}{
 			"context": "main",
 			"action":  "loadConfig",
 			"error":   loadCfgErr,
@@ -63,14 +63,14 @@ func initializeServicesDefault() {
 	//Docker service
 	dkSvc = kbxsrv.NewDockerService()
 	if dkSvcInsChk := dkSvc.IsDockerInstalled(); !dkSvcInsChk {
-		log.Logger.Warn("Docker is not installed", map[string]interface{}{
+		log.Warn("Docker is not installed", map[string]interface{}{
 			"context": "main",
 			"action":  "isDockerInstalled",
 			"version": cv,
 		})
 		insDockerErr := dkSvc.InstallDocker()
 		if insDockerErr != nil {
-			log.Logger.Error("Error installing Docker", map[string]interface{}{
+			log.Error("Error installing Docker", map[string]interface{}{
 				"context": "main",
 				"action":  "installDocker",
 				"error":   insDockerErr,
@@ -103,7 +103,7 @@ func GetConfigService(configFile string) kbxsrv.ConfigService {
 	}
 	cnfgSvcErr := cnfgSvc.LoadConfig()
 	if cnfgSvcErr != nil {
-		log.Logger.Error("Error loading configuration", map[string]interface{}{
+		log.Error("Error loading configuration", map[string]interface{}{
 			"context": "main",
 			"action":  "loadConfig",
 			"error":   cnfgSvcErr,
@@ -140,7 +140,7 @@ func NewBrokerService(port string) *kbxsrv.Broker {
 	if brkrSvc == nil {
 		_, brkrErr := kbxsrv.NewBrokerService(true, port)
 		if brkrErr != nil {
-			log.Logger.Error("Error creating broker service", map[string]interface{}{
+			log.Error("Error creating broker service", map[string]interface{}{
 				"context": "main",
 				"action":  "newBrokerService",
 				"error":   brkrErr,

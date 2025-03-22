@@ -5,7 +5,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/faelmori/gkbxsrv/logz"
+	"github.com/faelmori/logz"
 	"io"
 	"strconv"
 
@@ -459,7 +459,7 @@ func (d *DockerSrvImpl) StartService(serviceName string, image string, ports n.P
 
 	ctx := context.Background()
 
-	logz.Logger.Info("Verificando imagem... Aguarde um momento...", map[string]interface{}{
+	logz.Info("Verificando imagem... Aguarde um momento...", map[string]interface{}{
 		"context":     "StartService",
 		"serviceName": serviceName,
 		"image":       image,
@@ -467,7 +467,7 @@ func (d *DockerSrvImpl) StartService(serviceName string, image string, ports n.P
 
 	reader, readerErr := cli.ImagePull(ctx, image, i.PullOptions{})
 	if readerErr != nil {
-		logz.Logger.Error("Erro ao fazer pull da imagem", map[string]interface{}{
+		logz.Error("Erro ao fazer pull da imagem", map[string]interface{}{
 			"context":     "StartService",
 			"serviceName": serviceName,
 			"image":       image,
@@ -478,7 +478,7 @@ func (d *DockerSrvImpl) StartService(serviceName string, image string, ports n.P
 	defer reader.Close()
 	_, _ = io.Copy(io.Discard, reader)
 
-	logz.Logger.Info("Iniciando container... Aguarde um momento...", map[string]interface{}{
+	logz.Info("Iniciando container... Aguarde um momento...", map[string]interface{}{
 		"context":     "StartService",
 		"serviceName": serviceName,
 		"image":       image,
@@ -497,7 +497,7 @@ func (d *DockerSrvImpl) StartService(serviceName string, image string, ports n.P
 
 	resp, respErr := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, serviceName)
 	if respErr != nil {
-		logz.Logger.Error("Erro ao criar container", map[string]interface{}{
+		logz.Error("Erro ao criar container", map[string]interface{}{
 			"context":     "StartService",
 			"serviceName": serviceName,
 			"image":       image,
@@ -507,7 +507,7 @@ func (d *DockerSrvImpl) StartService(serviceName string, image string, ports n.P
 	}
 
 	if containerStartErr := cli.ContainerStart(ctx, resp.ID, c.StartOptions{}); containerStartErr != nil {
-		logz.Logger.Error("Erro ao iniciar container", map[string]interface{}{
+		logz.Error("Erro ao iniciar container", map[string]interface{}{
 			"context":     "StartService",
 			"serviceName": serviceName,
 			"error":       containerStartErr.Error(),
@@ -515,7 +515,7 @@ func (d *DockerSrvImpl) StartService(serviceName string, image string, ports n.P
 		return containerStartErr
 	}
 
-	logz.Logger.Info("Container iniciado com sucesso!", map[string]interface{}{
+	logz.Info("Container iniciado com sucesso!", map[string]interface{}{
 		"context":     "StartService",
 		"serviceName": serviceName,
 	})

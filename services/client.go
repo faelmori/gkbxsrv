@@ -9,7 +9,7 @@ import (
 
 const brokerSocketPath = "/tmp/GoLifeBroker.sck"
 
-type BrokerClient interface {
+type IBrokerClient interface {
 	SendCommand(command string) (string, error)
 	Close() error
 }
@@ -36,7 +36,7 @@ func (c *BrokerClientImpl) Close() error {
 	return c.Conn.Close()
 }
 
-func NewBrokerClient() (BrokerClient, error) {
+func NewBrokerClient() (IBrokerClient, error) {
 	conn, err := net.Dial("unix", brokerSocketPath)
 	if err != nil {
 		return nil, fmt.Errorf("falha ao conectar ao broker: %w", err)

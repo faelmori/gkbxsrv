@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"github.com/faelmori/gkbxsrv/logz"
+	"github.com/faelmori/logz"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -34,7 +34,7 @@ func getBrokersPath() (string, error) {
 
 	if _, statErr := os.Stat(brkDir); statErr != nil {
 		if mkDirErr := os.MkdirAll(brkDir, 0755); mkDirErr != nil {
-			logz.Logger.Error("Error creating brokers", map[string]interface{}{
+			logz.Error("Error creating brokers", map[string]interface{}{
 				"context":  "gkbxsrv",
 				"action":   "getBrokerPath",
 				"showData": true,
@@ -44,7 +44,7 @@ func getBrokersPath() (string, error) {
 		}
 	}
 
-	logz.Logger.Info(fmt.Sprintf("PID's folder: %s", brkDir), map[string]interface{}{
+	logz.Info(fmt.Sprintf("PID's folder: %s", brkDir), map[string]interface{}{
 		"context": "gkbxsrv",
 		"action":  "getBrokerPath",
 	})

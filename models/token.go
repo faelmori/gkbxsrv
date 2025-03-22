@@ -1,22 +1,25 @@
 package models
 
 import (
-	"github.com/faelmori/gkbxsrv/internal/clientjwt"
-	imodels "github.com/faelmori/gkbxsrv/internal/models"
-	"github.com/faelmori/gkbxsrv/logz"
-	"gorm.io/gorm"
+	c "github.com/faelmori/gkbxsrv/internal/clientjwt"
+	i "github.com/faelmori/gkbxsrv/internal/models"
+	s "github.com/faelmori/gkbxsrv/services"
+	l "github.com/faelmori/logz"
 )
 
-type TSConfig = imodels.TSConfig
-type TokenRepo struct{ imodels.TokenRepo }
-type TokenService struct{ imodels.TokenService }
+type TokenRepo interface {
+	i.TokenRepo
+}
+type TokenService interface {
+	i.TokenService
+}
 
-func LoadTokenCfg(db *gorm.DB) (*imodels.TokenService, int64, int64, error) {
-	tc := clientjwt.NewTokenClient()
-	tokenService, idExpirationSecs, refExpirationSecs, loadTokenCfgError := tc.LoadTokenCfg(db)
+func LoadTokenCfg(cfgService s.ConfigService, fsService s.FilesystemService, crtService s.CertService, dbService s.DatabaseService) (TokenService, int64, int64, error) {
+	ts := c.NewTokenClient(cfgService, fsService, &crtService, dbService)
+	tokenService, idExpirationSecs, refExpirationSecs, loadTokenCfgError := ts.LoadTokenCfg()
 	if loadTokenCfgError != nil {
-		logz.Logger.Error(loadTokenCfgError.Error(), nil)
+		l.Error(loadTokenCfgError.Error(), nil)
 		return nil, 0, 0, loadTokenCfgError
 	}
-	return tokenService, idExpirationSecs, refExpirationSecs, nil
+	return *tokenService, idExpirationSecs, refExpirationSecs, nil
 }
