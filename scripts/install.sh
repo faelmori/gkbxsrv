@@ -2,12 +2,12 @@
 
 _about='
 ################################################################################
-# This Script is used to install gkbxsrv project.                           #
+# This Script is used to install gkbxsrv project.                              #
 #                                                                              #
 # Supported OS: Linux, macOS ---> Windows(not supported)                       #
 # Supported Architecture: amd64, arm64                                         #
-# Source: https://github.com/faelmori/gkbxsrv                             #
-# Binary Release: https://github.com/faelmori/gkbxsrv/releases/latest     #
+# Source: https://github.com/faelmori/gkbxsrv                                  #
+# Binary Release: https://github.com/faelmori/gkbxsrv/releases/latest          #
 # License: Apache License 2.0                                                  #
 # Notes:                                                                       #
 # - [version] is optional; if omitted, the latest version will be used.        #
