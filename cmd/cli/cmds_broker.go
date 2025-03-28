@@ -2,8 +2,8 @@ package cli
 
 import (
 	"github.com/faelmori/gkbxsrv/internal/services"
-	"github.com/faelmori/gkbxsrv/logz"
 	databases "github.com/faelmori/gkbxsrv/services"
+	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
@@ -48,11 +48,11 @@ func brokerCommand() *cobra.Command {
 			ws.Add(1)
 			go func() {
 				defer ws.Done()
-				logz.Logger.Info("Starting broker...", map[string]interface{}{"configFile": configFile, "host": host, "port": port})
+				l.GetLogger("GKBXSrv").Info("Starting broker...", map[string]interface{}{"configFile": configFile, "host": host, "port": port})
 
 				///if _, brkErr := services.NewBrokerConn(port); brkErr != nil {
 				if _, brkErr := services.NewBroker(true); brkErr != nil {
-					logz.Logger.Fatalln("Error starting broker", map[string]interface{}{
+					l.GetLogger("GKBXSrv").Fatalln("Error starting broker", map[string]interface{}{
 						"context":  "gkbxsrv",
 						"action":   "broker",
 						"showData": true,
@@ -64,7 +64,7 @@ func brokerCommand() *cobra.Command {
 					return
 				}
 			}()
-			logz.Logger.Info("Broker started successfully!", nil)
+			l.GetLogger("GKBXSrv").Info("Broker started successfully!", nil)
 
 			<-chanSig
 			ws.Wait()
