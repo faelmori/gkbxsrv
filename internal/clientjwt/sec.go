@@ -13,20 +13,20 @@ import (
 )
 
 type TSConfig = i.TSConfig
-type TokenService = i.TokenService
+type TokenService interface{ i.TokenService }
 type PrivateKey = *rsa.PrivateKey
 type PublicKey = *rsa.PublicKey
 
 type TokenClient interface {
 	LoadPrivateKey() (*PrivateKey, error)
 	LoadPublicKey() *PublicKey
-	LoadTokenCfg() (*TokenService, int64, int64, error)
+	LoadTokenCfg() (TokenService, int64, int64, error)
 }
 type TokenClientImpl struct {
 	cfgSrv                s.ConfigService
 	dbSrv                 s.DatabaseService
 	fsSrv                 s.FilesystemService
-	crtSrv                *s.CertService
+	crtSrv                s.CertService
 	TokenService          i.TokenService
 	IDExpirationSecs      int64
 	RefreshExpirationSecs int64
@@ -41,12 +41,11 @@ func (t *TokenClientImpl) LoadPrivateKey() (*PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error reading private key file: %v", err)
 	}
-	crtB := *t.crtSrv
-	pwd, pwdErr := crtB.RetrievePassword()
+	pwd, pwdErr := t.crtSrv.RetrievePassword()
 	if pwdErr != nil {
 		return nil, fmt.Errorf("error reading private key file: %v", pwdErr)
 	}
-	privateKey, privateKeyErr := crtB.DecryptPrivateKey(keyData, []byte(pwd))
+	privateKey, privateKeyErr := t.crtSrv.DecryptPrivateKey(keyData, []byte(pwd))
 	if privateKeyErr != nil {
 		return nil, fmt.Errorf("error parsing private key: %v", privateKeyErr)
 	}
@@ -85,7 +84,7 @@ func (t *TokenClientImpl) LoadPublicKey() *PublicKey {
 
 	return &publicKey
 }
-func (t *TokenClientImpl) LoadTokenCfg() (*TokenService, int64, int64, error) {
+func (t *TokenClientImpl) LoadTokenCfg() (TokenService, int64, int64, error) {
 	t.fsSrv = *s.NewFileSystemService(t.cfgSrv.GetConfigPath())
 	t.crtSrv = s.NewCertService(t.fsSrv.GetDefaultKeyPath(), t.fsSrv.GetDefaultCertPath())
 	db, dbErr := t.dbSrv.GetDB()
@@ -127,10 +126,10 @@ func (t *TokenClientImpl) LoadTokenCfg() (*TokenService, int64, int64, error) {
 	}
 	tokenService := i.NewTokenService(tkConfig)
 
-	return &tokenService, idExpirationSecs, refExpirationSecs, nil
+	return tokenService, idExpirationSecs, refExpirationSecs, nil
 }
 
-func NewTokenClient(cfg s.ConfigService, fs s.FilesystemService, crt *s.CertService, db s.DatabaseService) TokenClient {
+func NewTokenClient(cfg s.ConfigService, fs s.FilesystemService, crt s.CertService, db s.DatabaseService) TokenClient {
 	if cfg == nil {
 		cfg = services.NewConfigService(viper.ConfigFileUsed(), viper.GetString("cert.key_path"), viper.GetString("cert.cert_path"))
 	}
@@ -140,10 +139,15 @@ func NewTokenClient(cfg s.ConfigService, fs s.FilesystemService, crt *s.CertServ
 	if crt == nil {
 		crt = s.NewCertService(viper.GetString("cert.key_path"), viper.GetString("cert.cert_path"))
 	}
-	return &TokenClientImpl{
+	if db == nil {
+		db = s.NewDatabaseService(viper.GetString("db.connection_string"))
+	}
+	tokenClient := &TokenClientImpl{
 		cfgSrv: cfg,
 		fsSrv:  fs,
 		crtSrv: crt,
 		dbSrv:  db,
 	}
+
+	return tokenClient
 }

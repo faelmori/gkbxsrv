@@ -4,10 +4,10 @@ import (
 	cert "github.com/faelmori/gkbxsrv/internal/services"
 )
 
-type CertService = cert.ICertService
+type CertService interface {
+	cert.ICertService
+}
 
-func NewCertService(keyPath string, certPath string) *CertService {
-	srv := cert.NewCertService(keyPath, certPath)
-	srvB := srv.(CertService)
-	return &srvB
+func NewCertService(keyPath string, certPath string) CertService {
+	return cert.NewCertService(keyPath, certPath)
 }
