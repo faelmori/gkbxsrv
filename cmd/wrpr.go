@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/faelmori/gkbxsrv/cmd/cli"
+	"github.com/faelmori/gkbxsrv/version"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
@@ -93,8 +94,8 @@ func (m *GKBXSrv) Command() *cobra.Command {
 	pathsCmd := &cobra.Command{
 		Use:         "fs",
 		Aliases:     []string{"fileSystem", "path", "pth"},
-		Short:       "Paths module",
-		Annotations: m.getDescriptions([]string{"Paths module is a set of tools to help you manage file paths.", "Paths module"}, false),
+		Short:       "FileSystem module",
+		Annotations: m.getDescriptions([]string{"FileSystem module is a set of tools to help you manage file paths.", "Paths module"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},
@@ -175,11 +176,18 @@ func (m *GKBXSrv) Command() *cobra.Command {
 	cmd.AddCommand(cli.GdbaseCommands()...)
 	cmd.AddCommand(cli.BrokerCommands()...)
 
+	cmd.AddCommand(version.CliCommand())
+
+	// Set usage definitions for the command and its subcommands
+	setUsageDefinition(cmd)
 	for _, c := range cmd.Commands() {
 		setUsageDefinition(c)
+		if !strings.Contains(strings.Join(os.Args, " "), c.Use) {
+			if c.Short == "" {
+				c.Short = c.Annotations["description"]
+			}
+		}
 	}
-
-	setUsageDefinition(cmd)
 
 	return cmd
 }
@@ -200,11 +208,12 @@ func (m *GKBXSrv) getDescriptions(descriptionArg []string, hideBanner bool) map[
 		}
 	}
 	if !hideBanner {
-		banner = `   ______      __ __      __              ___________
-  / ____/___  / //_/_  __/ /_  ___  _  __/ ____/ ___/
- / / __/ __ \/ ,< / / / / __ \/ _ \| |/_/ /_   \__ \ 
-/ /_/ / /_/ / /| / /_/ / /_/ /  __/>  </ __/  ___/ / 
-\____/\____/_/ |_\__,_/_.___/\___/_/|_/_/    /____/
+		banner = `
+   ______      __ __      __
+  / ____/___  / //_/_  __/ /_  ___  _  __
+ / / __/ __ \/ ,< / / / / __ \/ _ \| |/_/ 
+/ /_/ / /_/ / /| / /_/ / /_/ /  __/>  </ 
+\____/\____/_/ |_\__,_/_.___/\___/_/|_/
 `
 	} else {
 		banner = ""
