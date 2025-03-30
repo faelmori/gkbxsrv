@@ -41,11 +41,29 @@ func GetServerConfig(configService ConfigService) *gbls.Server {
 		}
 	}
 	if serverConfig != nil {
+		prt := serverConfig["port"]
+		if prt == nil {
+			prt = "8888"
+		}
+		bda := serverConfig["bind_address"]
+		if bda == nil {
+			bda = "0.0.0.0"
+		}
+		rto := serverConfig["read_timeout"]
+		if rto == nil {
+			rto = 60
+		}
+		wto := serverConfig["write_timeout"]
+		if wto == nil {
+			wto = 60
+		}
+
 		srv := &gbls.Server{}
-		srv.Port = serverConfig["port"].(string)
-		srv.BindAddress = serverConfig["bind_address"].(string)
-		srv.ReadTimeout = serverConfig["read_timeout"].(int)
-		srv.WriteTimeout = serverConfig["write_timeout"].(int)
+		srv.Port = prt.(string)
+		srv.BindAddress = bda.(string)
+		srv.ReadTimeout = int(rto.(float64))
+		srv.WriteTimeout = int(wto.(float64))
+
 		return srv
 	}
 	return nil

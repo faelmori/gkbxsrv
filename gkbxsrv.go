@@ -85,7 +85,7 @@ func initializeServicesDefault() {
 
 	//Certificate service
 	cs := kbxsrv.NewCertService(fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
-	crtSvc = *cs
+	crtSvc = cs
 }
 
 func GetFilesystemService(configFile string) kbxsrv.FilesystemService {
@@ -131,7 +131,7 @@ func GetCertService() kbxsrv.CertService {
 	if crtSvc == nil {
 		fs := GetFilesystemService("gkbxsrv")
 		cs := kbxsrv.NewCertService(fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
-		crtSvc = *cs
+		crtSvc = cs
 	}
 	return crtSvc
 }
