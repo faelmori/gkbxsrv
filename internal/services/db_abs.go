@@ -24,7 +24,7 @@ var databaseService *DatabaseServiceImpl
 
 type IDatabaseService interface {
 	LoadViperConfig()
-	GetDBConfig(name string) (glb.Database, error)
+	GetDBConfig(name string) (*glb.Database, error)
 	ConnectDB() error
 	GetDB() (*gorm.DB, error)
 	CloseDBConnection() error
@@ -50,7 +50,7 @@ type DatabaseServiceImpl struct {
 	db        *gorm.DB
 	mtx       *sync.Mutex
 	wg        *sync.WaitGroup
-	dbCfg     glb.Database
+	dbCfg     *glb.Database
 	dbChanCtl chan string
 	dbChanErr chan error
 	dbChanSig chan os.Signal
@@ -129,7 +129,7 @@ func (d *DatabaseServiceImpl) IsConnected() error {
 			db:        nil,
 			mtx:       &sync.Mutex{},
 			wg:        &sync.WaitGroup{},
-			dbCfg:     dbCfg,
+			dbCfg:     &dbCfg,
 			dbChanCtl: make(chan string),
 			dbChanErr: make(chan error),
 			dbChanSig: make(chan os.Signal),
@@ -146,9 +146,44 @@ func (d *DatabaseServiceImpl) IsConnected() error {
 		return nil
 	}
 }
-func (d *DatabaseServiceImpl) GetDBConfig(name string) (glb.Database, error) {
-	d.LoadViperConfig()
-	return d.dbCfg, nil
+func (d *DatabaseServiceImpl) GetDBConfig(name string) (*glb.Database, error) {
+	if d == nil {
+		return nil, fmt.Errorf("❌ DatabaseService is nil")
+	} else {
+		if d.dbCfg != nil {
+			if d.dbCfg.Name != "" {
+				if d.dbCfg.Name != name {
+					return nil, fmt.Errorf("❌ Database name mismatch: expected %s, got %s", name, d.dbCfg.Name)
+				}
+			}
+			return d.dbCfg, nil
+		} else {
+			d.LoadViperConfig()
+			if d.dbCfg == nil {
+				d.dbCfg = &glb.Database{
+					Name:             viper.GetString("name"),
+					Type:             viper.GetString("type"),
+					Driver:           viper.GetString("driver"),
+					ConnectionString: viper.GetString("connection_string"),
+					Dsn:              viper.GetString("dsn"),
+					Path:             viper.GetString("path"),
+					Host:             viper.GetString("host"),
+					Port:             viper.GetString("port"),
+					Username:         viper.GetString("username"),
+					Password:         viper.GetString("password"),
+				}
+
+				if d.dbCfg.Name == "" {
+					d.dbCfg.Name = name
+				} else {
+					if d.dbCfg.Name != name {
+						return nil, fmt.Errorf("❌ Database name mismatch: expected %s, got %s", name, d.dbCfg.Name)
+					}
+				}
+			}
+			return d.dbCfg, nil
+		}
+	}
 }
 
 func (d *DatabaseServiceImpl) GetHost() (string, error) {
@@ -387,8 +422,7 @@ func (d *DatabaseServiceImpl) ServiceHandler() chan interface{} {
 					d.dbChanErr <- nil
 				}
 			case "getHost":
-				dbCfgB := &d.dbCfg
-				d.dbChanErr <- &glb.ValidationError{Message: dbCfgB.Host, Field: "dbChanCtl_getHost"}
+				d.dbChanErr <- &glb.ValidationError{Message: d.dbCfg.Host, Field: "dbChanCtl_getHost"}
 			case "close":
 				dbB, dbBErr := d.db.DB()
 				if dbBErr != nil {
@@ -416,7 +450,7 @@ func NewDatabaseService(configFileArg string) IDatabaseService {
 		db:        nil,
 		mtx:       &sync.Mutex{},
 		wg:        &sync.WaitGroup{},
-		dbCfg:     glb.Database{},
+		dbCfg:     &glb.Database{},
 		dbChanCtl: make(chan string, 10),
 		dbChanErr: make(chan error, 10),
 		dbChanSig: make(chan os.Signal, 1),

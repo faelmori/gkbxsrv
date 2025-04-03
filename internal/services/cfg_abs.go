@@ -138,7 +138,7 @@ func (c *ConfigServiceImpl) genCacheFlag(flagToMark string) error {
 }
 
 func (c *ConfigServiceImpl) SetLogger() {
-	c.Logger = log.New(os.Stdout, "GoSpyder", 3)
+	c.Logger = log.New(os.Stdout, "GoSpider", 3)
 }
 
 func (c *ConfigServiceImpl) GetLogger() *log.Logger {
@@ -504,7 +504,7 @@ func NewConfigSrv(configPath, keyPath, certPath string) ConfigService {
 	home = filepath.Dir(home)
 
 	if configPath == "" {
-		configPath = strings.ReplaceAll(glb.DefaultGoSpyderConfigPath, "$HOME", home)
+		configPath = strings.ReplaceAll(glb.DefaultGoSpiderConfigPath, "$HOME", home)
 	} else {
 		configPath = strings.ReplaceAll(configPath, "$HOME", home)
 	}

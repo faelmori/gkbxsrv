@@ -66,7 +66,7 @@ type FileSystemServiceImpl struct {
 	kubexDir       string
 	vaultDir       string
 	kbxDir         string
-	goSpyderDir    string
+	goSpiderDir    string
 	rootDir        string
 	configDir      string
 	keyPath        string
@@ -115,7 +115,7 @@ func (f *FileSystemServiceImpl) hostDefaultDirs() ([]string, error) {
 		filepath.Join(home, ".kubex", "volumes", "mongo"),
 		filepath.Join(home, ".kubex", "volumes", "redis"),
 		filepath.Join(home, ".kubex", "volumes", "rabbitmq"),
-		filepath.Join(home, ".kubex", "gospyder"),
+		filepath.Join(home, ".kubex", "gospider"),
 		filepath.Join(home, ".kubex", "kbx"),
 		filepath.Join(home, ".kubex"),
 	}, nil
@@ -265,7 +265,7 @@ func (f *FileSystemServiceImpl) GetDefaultCertPath() string          { return f.
 
 func NewFileSystemSrv(configFile string) FileSystemService {
 	if configFile == "" {
-		configFile = globals.DefaultGoSpyderConfigPath
+		configFile = globals.DefaultGoSpiderConfigPath
 	}
 	homeDir, homeDirErr := os.UserHomeDir()
 	if homeDirErr != nil {
@@ -283,8 +283,8 @@ func NewFileSystemSrv(configFile string) FileSystemService {
 		kubexDir:       strings.Replace(globals.DefaultKubexDir, "$HOME", homeDir, -1),
 		vaultDir:       strings.Replace(globals.DefaultVaultDir, "$HOME", homeDir, -1),
 		kbxDir:         strings.Replace(globals.DefaultKbxDir, "$HOME", homeDir, -1),
-		rootDir:        strings.Replace(globals.DefaultGoSpyderDir, "$HOME", homeDir, -1),
-		configDir:      strings.Replace(globals.DefaultGoSpyderConfigDir, "$HOME", homeDir, -1),
+		rootDir:        strings.Replace(globals.DefaultGoSpiderDir, "$HOME", homeDir, -1),
+		configDir:      strings.Replace(globals.DefaultGoSpiderConfigDir, "$HOME", homeDir, -1),
 		keyPath:        strings.Replace(globals.DefaultKeyPath, "$HOME", homeDir, -1),
 		certPath:       strings.Replace(globals.DefaultCertPath, "$HOME", homeDir, -1),
 	}

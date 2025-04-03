@@ -16,13 +16,13 @@ func createRequestWithAuth(method, url string, authOptions *AuthOptions) (*http.
 
 	var version string
 	var versionErr error
-	version, versionErr = getGoSpyderVersion()
+	version, versionErr = getGoSpiderVersion()
 	if versionErr != nil {
 		return nil, versionErr
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "GoSpyder/"+version)
+	req.Header.Set("User-Agent", "GoSpider/"+version)
 
 	switch authOptions.Type {
 	case "basic":
@@ -58,7 +58,7 @@ func createRequestWithAuth(method, url string, authOptions *AuthOptions) (*http.
 	return req, nil
 }
 
-func getGoSpyderVersion() (string, error) {
+func getGoSpiderVersion() (string, error) {
 	// TODO: Implementar lógica para obter a versão da aplicação
 	return "1.0.0", nil
 }

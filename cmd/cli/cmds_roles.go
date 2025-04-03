@@ -10,7 +10,7 @@ func RolesRootCommand() *cobra.Command {
 	rolesCmd := &cobra.Command{
 		Use:         "roles",
 		Aliases:     []string{"role", "r", "rol"},
-		Annotations: getDescriptions([]string{"Role commands for the gospyder module.", "Role commands"}, false),
+		Annotations: getDescriptions([]string{"Role commands for the gospider module.", "Role commands"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("you must specify a subcommand")
 		},

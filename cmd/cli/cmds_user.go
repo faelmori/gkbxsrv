@@ -16,7 +16,7 @@ func UserRootCommand() *cobra.Command {
 	userCmd := &cobra.Command{
 		Use:         "user",
 		Aliases:     []string{"users", "u", "usr"},
-		Annotations: getDescriptions([]string{"User commands for the gospyder module.", "User commands"}, false),
+		Annotations: getDescriptions([]string{"User commands for the gospider module.", "User commands"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("no command specified for users")
 		},

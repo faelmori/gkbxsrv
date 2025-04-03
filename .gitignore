@@ -158,8 +158,8 @@ npm/
 /pkg/mod/
 /bin/
 /spidergo.iml
-/gospyder.iml
-/gospyder
+/gospider.iml
+/gospider
 /.idea/.gitignore
 /.idea/misc.xml
 /.idea/modules.xml

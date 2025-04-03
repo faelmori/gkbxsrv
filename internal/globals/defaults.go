@@ -23,9 +23,9 @@ const DefaultPostgresVolume = "$HOME/.kubex/volumes/postgresql"
 const DefaultKubexDir = "$HOME/.kubex"
 const DefaultVaultDir = "$HOME/.kubex/.vault"
 const DefaultKbxDir = "$HOME/.kubex/kbx"
-const DefaultGoSpyderDir = "$HOME/.kubex/gospyder"
-const DefaultGoSpyderConfigDir = "$HOME/.kubex/gospyder/config"
-const DefaultGoSpyderConfigPath = "$HOME/.kubex/gospyder/config/config.json"
+const DefaultGoSpiderDir = "$HOME/.kubex/gospider"
+const DefaultGoSpiderConfigDir = "$HOME/.kubex/gospider/config"
+const DefaultGoSpiderConfigPath = "$HOME/.kubex/gospider/config/config.json"
 const DefaultKeyPath = "$HOME/.kubex/kubex-key.pem"
 const DefaultCertPath = "$HOME/.kubex/kubex-cert.pem"
 
@@ -101,7 +101,7 @@ type FileSystem struct {
 	kubexDir       string
 	vaultDir       string
 	kbxDir         string
-	goSpyderDir    string
+	goSpiderDir    string
 	rootDir        string
 	configDir      string
 	keyPath        string
