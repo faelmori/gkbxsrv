@@ -1,12 +1,85 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"github.com/faelmori/gkbxsrv/internal/utils"
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
 )
+
+func CheckPortAsync(ctx context.Context, port string, listenerConfig net.ListenConfig) (<-chan string, <-chan error) {
+	resultChan := make(chan string, 1)
+	errorChan := make(chan error, 1)
+	go func() {
+		listener, err := listenerConfig.Listen(ctx, "tcp", net.JoinHostPort("localhost", port))
+		if err != nil {
+			errorChan <- err
+			return
+		}
+		defer func(listener net.Listener) {
+			_ = listener.Close()
+		}(listener)
+		resultChan <- port
+	}()
+	return resultChan, errorChan
+}
+
+func IsPortAvailable(port string) (string, error) {
+	listenerConfig := net.ListenConfig{
+		Control: func(network, address string, c syscall.RawConn) error {
+			var err error
+			if err = c.Control(func(fd uintptr) {
+				err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+			}); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	timeout := 100 * time.Millisecond
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	resultChan, errorChan := CheckPortAsync(ctx, port, listenerConfig)
+	for {
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("context deadline exceeded for port %s", port)
+		case result := <-resultChan:
+			return result, nil
+		case err := <-errorChan:
+			return "", err
+		}
+	}
+}
+
+func SearchAvailablePort(startPort string) (string, error) {
+	intPort, err := strconv.Atoi(startPort)
+	if err != nil {
+		return "", fmt.Errorf("invalid port number: %s, error: %v", startPort, err)
+	}
+
+	maxAttempts := 65535 - intPort
+	if maxAttempts > 100 {
+		maxAttempts = 100
+	}
+
+	for attempts := 0; attempts < maxAttempts; attempts++ {
+		availablePort := strconv.Itoa(intPort)
+		if available, availableErr := IsPortAvailable(availablePort); availableErr == nil {
+			return available, nil
+		}
+		intPort++
+	}
+
+	return "", fmt.Errorf("no available port found in range starting from %s", startPort)
+}
 
 func CheckPortOpen(port string) bool {
 	conn, err := net.Dial("tcp", "localhost:"+port)

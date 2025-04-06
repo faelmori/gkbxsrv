@@ -56,6 +56,44 @@ type TableHandler struct {
 	rows map[int]map[string]string
 }
 
+func (h *TableHandler) GetArrayMap() map[string][]string {
+	var arrayMap = make(map[string][]string)
+	for _, row := range h.rows {
+		for k, v := range row {
+			arrayMap[k] = append(arrayMap[k], v)
+		}
+	}
+	return arrayMap
+}
+func (h *TableHandler) GetHashMap() map[string]string {
+	var hashMap = make(map[string]string)
+	for _, row := range h.rows {
+		for k, v := range row {
+			hashMap[k] = v
+		}
+	}
+	return hashMap
+}
+func (h *TableHandler) GetObjectMap() []map[string]string {
+	var objectMap []map[string]string
+	for _, row := range h.rows {
+		var obj = make(map[string]string)
+		for k, v := range row {
+			obj[k] = v
+		}
+		objectMap = append(objectMap, obj)
+	}
+	return objectMap
+}
+func (h *TableHandler) GetByteMap() map[string][]byte {
+	var byteMap = make(map[string][]byte)
+	for _, row := range h.rows {
+		for k, v := range row {
+			byteMap[k] = []byte(v)
+		}
+	}
+	return byteMap
+}
 func (h *TableHandler) GetHeaders() []string {
 	var headers []string
 	for _, row := range h.rows {
