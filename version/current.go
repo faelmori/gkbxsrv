@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-const moduleAlias = "GoKubex"
+const moduleAlias = "GoKubex-Data"
 const moduleName = "gkbxsrv"
 const gitModelUrl = "https://github.com/faelmori/" + moduleName + ".git"
-const currentVersionFallback = "v1.0.7" // First version with the version file
+const currentVersionFallback = "v1.0.8" // First version with the version file
 
 var (
 	l          = logger.NewLogger(moduleAlias)

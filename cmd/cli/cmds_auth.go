@@ -2,15 +2,15 @@ package cli
 
 import (
 	"fmt"
-	databases "github.com/faelmori/gkbxsrv/services"
-	//"github.com/faelmori/gkbxsrv/utils"
-	//"github.com/faelmori/xtui/types"
+	"github.com/faelmori/gkbxsrv/utils"
+	databases "github.com/faelmori/kbxutils/api"
+	l "github.com/faelmori/logz"
+	"github.com/faelmori/xtui/types"
+	"reflect"
 
-	//. "github.com/faelmori/kbx/mods/ui/components"
-	//"github.com/faelmori/kbx/mods/ui/types"
+	. "github.com/faelmori/xtui/components"
 	"github.com/spf13/cobra"
-	//"strconv"
-	//"strings"
+	"strings"
 )
 
 func AuthenticationRootCommand(cmd *cobra.Command) *cobra.Command {
@@ -35,8 +35,8 @@ func authenticateUserCommand() *cobra.Command {
 		Use:         "auth",
 		Aliases:     []string{"authenticate", "login", "signin"},
 		Annotations: getDescriptions([]string{"Authenticate user to database.", "Authenticate user"}, false),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			/*if username == "" || password == "" {
+		Run: func(cmd *cobra.Command, args []string) {
+			if username == "" || password == "" {
 				dbHost := ""
 				if host != "" {
 					dbHost = host
@@ -45,31 +45,36 @@ func authenticateUserCommand() *cobra.Command {
 				}
 				if !quiet {
 					utils.ClearScreen()
-					inputs := make([]types.TuizInput, 4)
-					inputs[0] = types.TuizInput{
-						Ph:  "Database",
-						Tp:  "text",
-						Val: dbHost,
-						Req: true,
-						Min: 3,
-						Max: 50,
-						Err: "Database é obrigatório",
-						Vld: func(s string) error {
+					inputs := make([]types.FormInputObject[any], 4)
+					//data := reflect.ValueOf(&database).Elem().Interface().(string)
+
+					inputs[0] = &types.Input[any]{
+						Ph:                 "Database",
+						Tp:                 reflect.TypeOf(""),
+						Val:                nil,
+						Req:                true,
+						Min:                3,
+						Max:                50,
+						Err:                "Database é obrigatório",
+						ValidationRulesVal: nil, /*[]types.FormInputValidationString{
+						"TESTE",
+						"TESTE2",
+						func(s string) error {
 							if len(s) < 3 {
 								return fmt.Errorf("database deve ter no mínimo 3 caracteres")
 							}
 							return nil
-						},
+						},*/
 					}
-					inputs[1] = types.TuizInput{
-						Ph:  "Porta",
-						Tp:  "text",
-						Val: port,
-						Req: true,
-						Min: 3,
-						Max: 5,
-						Err: "Porta é obrigatória",
-						Vld: func(s string) error {
+					inputs[1] = &types.Input[any]{
+						Ph:                 "Porta",
+						Tp:                 reflect.TypeOf(""),
+						Val:                nil,
+						Req:                true,
+						Min:                3,
+						Max:                5,
+						Err:                "Porta é obrigatória",
+						ValidationRulesVal: nil, /*func(s string) error {
 							p, pErr := strconv.Atoi(s)
 							if pErr != nil {
 								return fmt.Errorf("porta deve ser um número")
@@ -78,59 +83,68 @@ func authenticateUserCommand() *cobra.Command {
 								return fmt.Errorf("porta deve ser um número entre 100 e 65535")
 							}
 							return nil
-						},
+						},*/
 					}
-					inputs[2] = types.TuizInput{
-						Ph:  "Nome de Usuário",
-						Tp:  "text",
-						Val: "",
-						Req: true,
-						Min: 3,
-						Max: 50,
-						Err: "Nome de Usuário é obrigatório",
-						Vld: func(s string) error {
+					inputs[2] = &types.Input[any]{
+						Ph:                 "Nome de Usuário",
+						Tp:                 reflect.TypeOf(""),
+						Val:                nil,
+						Req:                true,
+						Min:                3,
+						Max:                50,
+						Err:                "Nome de Usuário é obrigatório",
+						ValidationRulesVal: nil, /*func(s string) error {
 							if len(s) < 3 {
 								return fmt.Errorf("nome de Usuário deve ter no mínimo 3 caracteres")
 							}
 							return nil
-						},
+						}*/
 					}
-					inputs[3] = types.TuizInput{
-						Ph:  "Senha",
-						Tp:  "password",
-						Val: "",
-						Req: true,
-						Min: 6,
-						Max: 50,
-						Err: "Senha é obrigatória",
-						Vld: func(s string) error {
+					inputs[3] = &types.Input[any]{
+						Ph:                 "Senha",
+						Tp:                 reflect.TypeOf(""),
+						Val:                nil,
+						Req:                true,
+						Min:                6,
+						Max:                50,
+						Err:                "Senha é obrigatória",
+						ValidationRulesVal: nil, /*func(s string) error {
 							if len(s) < 6 {
 								return fmt.Errorf("senha deve ter no mínimo 6 caracteres")
 							}
 							return nil
-						},
+						},*/
 					}
 
-					var fields = types.TuizFields{Tt: "text", Fds: inputs}
-					tuizResult, tuizErr := KbdzInputs(types.TuizConfigz{
-						Tt:  fmt.Sprintf("Autenticar Usuário %s", dbHost),
-						Fds: &fields,
+					var fields = types.FormFields{Title: "text", Fields: inputs}
+					tuizResult, tuizErr := ShowForm(types.FormConfig{
+						Title:      fmt.Sprintf("Autenticar Usuário %s", dbHost),
+						FormFields: fields,
 					})
 					if tuizErr != nil {
-						return fmt.Errorf("error getting user input: %v", tuizErr)
+						l.Error(fmt.Sprintf("Error: %v", tuizErr), map[string]any{
+							"context": "tuiz",
+							"error":   tuizErr,
+						})
 					}
 					username = tuizResult["field0"]
 					password = tuizResult["field2"]
 				} else {
-					return fmt.Errorf("username and password are required")
+					l.Error("Username and password are required", map[string]any{
+						"context": "tuiz",
+					})
+					return
 				}
-			}*/
+			}
 			dbaseObj := databases.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
-				return fmt.Errorf("error connecting to database: %v", dbaseConnErr)
+				l.Error("Error connecting to database", map[string]any{
+					"context": "tuiz",
+					"error":   dbaseConnErr,
+				})
+				return
 			}
-			return nil
 		},
 	}
 

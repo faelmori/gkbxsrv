@@ -1,20 +1,21 @@
 package gkbxsrv
 
 import (
-	kbxsrv "github.com/faelmori/gkbxsrv/services"
 	vs "github.com/faelmori/gkbxsrv/version"
+	kbxApi "github.com/faelmori/kbxutils/api"
+	kbxsrv "github.com/faelmori/kbxutils/utils/helpers"
 	log "github.com/faelmori/logz"
 	"os"
 )
 
 var (
-	fsSvc   kbxsrv.FilesystemService
+	fsSvc   kbxsrv.FileSystemService
 	cnfgSvc kbxsrv.ConfigService
 	vSvc    vs.VersionService
-	dbSvc   kbxsrv.DatabaseService
-	crtSvc  kbxsrv.CertService
-	brkrSvc *kbxsrv.Broker
-	dkSvc   kbxsrv.DockerSrv
+	dbSvc   kbxsrv.IDatabaseService
+	crtSvc  kbxsrv.ICertService
+	//brkrSvc *kbxsrv.Broker
+	dkSvc kbxsrv.DockerService
 )
 
 func initializeServicesDefault() {
@@ -31,7 +32,7 @@ func initializeServicesDefault() {
 	if port == "" {
 		port = "5555"
 	}
-	_, brkrErr := kbxsrv.NewBrokerService(true, port)
+	_, brkrErr := kbxApi.NewBrokerService(true, port)
 	if brkrErr != nil {
 		log.Error("Error creating broker service", map[string]interface{}{
 			"context": "main",
@@ -43,11 +44,11 @@ func initializeServicesDefault() {
 	}
 
 	//Filesystem service
-	fs := kbxsrv.NewFileSystemService("gkbxsrv")
+	fs := kbxApi.NewFileSystemService("gkbxsrv")
 	fsSvc = *fs
 
 	//Config service
-	cnfgSvc = kbxsrv.NewConfigService(fsSvc.GetConfigFilePath(), fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
+	cnfgSvc = kbxApi.NewConfigService(fsSvc.GetConfigFilePath(), fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
 	loadCfgErr := cnfgSvc.LoadConfig()
 	if loadCfgErr != nil {
 		log.Error("Error loading configuration", map[string]interface{}{
@@ -61,7 +62,7 @@ func initializeServicesDefault() {
 	}
 
 	//Docker service
-	dkSvc = kbxsrv.NewDockerService()
+	dkSvc = kbxApi.NewDockerService()
 	if dkSvcInsChk := dkSvc.IsDockerInstalled(); !dkSvcInsChk {
 		log.Warn("Docker is not installed", map[string]interface{}{
 			"context": "main",
@@ -81,16 +82,16 @@ func initializeServicesDefault() {
 	}
 
 	//Database service
-	dbSvc = kbxsrv.NewDatabaseService(cnfgSvc.GetConfigPath())
+	dbSvc = kbxApi.NewDatabaseService(cnfgSvc.GetConfigPath())
 
 	//Certificate service
-	cs := kbxsrv.NewCertService(fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
+	cs := kbxApi.NewCertService(fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
 	crtSvc = cs
 }
 
-func GetFilesystemService(configFile string) kbxsrv.FilesystemService {
+func GetFilesystemService(configFile string) kbxsrv.FileSystemService {
 	if fsSvc == nil {
-		fs := kbxsrv.NewFileSystemService(configFile)
+		fs := kbxApi.NewFileSystemService(configFile)
 		fsSvc = *fs
 	}
 	return fsSvc
@@ -99,7 +100,7 @@ func GetFilesystemService(configFile string) kbxsrv.FilesystemService {
 func GetConfigService(configFile string) kbxsrv.ConfigService {
 	if cnfgSvc == nil {
 		fs := GetFilesystemService(configFile)
-		cnfgSvc = kbxsrv.NewConfigService(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
+		cnfgSvc = kbxApi.NewConfigService(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
 	}
 	cnfgSvcErr := cnfgSvc.LoadConfig()
 	if cnfgSvcErr != nil {
@@ -119,18 +120,18 @@ func GetVersionService() vs.VersionService {
 	return vSvc
 }
 
-func GetDatabaseService(configFile string) kbxsrv.DatabaseService {
+func GetDatabaseService(configFile string) kbxApi.DatabaseService {
 	if dbSvc == nil {
 		cnfgSvc := GetConfigService(configFile)
-		dbSvc = kbxsrv.NewDatabaseService(cnfgSvc.GetConfigPath())
+		dbSvc = kbxApi.NewDatabaseService(cnfgSvc.GetConfigPath())
 	}
 	return dbSvc
 }
 
-func GetCertService() kbxsrv.CertService {
+func GetCertService() kbxsrv.ICertService {
 	if crtSvc == nil {
 		fs := GetFilesystemService("gkbxsrv")
-		cs := kbxsrv.NewCertService(fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
+		cs := kbxApi.NewCertService(fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
 		crtSvc = cs
 	}
 	return crtSvc
@@ -150,9 +151,9 @@ func NewBrokerService(port string) *kbxsrv.Broker {
 	return brkrSvc
 }
 
-func GetDockerService() kbxsrv.DockerSrv {
+func GetDockerService() kbxApi.DockerSrv {
 	if dkSvc == nil {
-		dkSvc = kbxsrv.NewDockerService()
+		dkSvc = kbxApi.NewDockerService()
 	}
 	return dkSvc
 }

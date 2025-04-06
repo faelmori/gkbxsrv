@@ -2,10 +2,10 @@ package cli
 
 import (
 	"fmt"
+
 	//"github.com/faelmori/gkbxsrv/internal/models/forms"
 	. "github.com/faelmori/gkbxsrv/models"
-	"github.com/faelmori/gkbxsrv/services"
-	databases "github.com/faelmori/gkbxsrv/services"
+	a "github.com/faelmori/kbxutils/api"
 	//"github.com/faelmori/gkbxsrv/utils"
 	//. "github.com/faelmori/kbx/mods/ui/components"
 	//"github.com/faelmori/kbx/mods/ui/types"
@@ -45,7 +45,7 @@ func insertUserCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			userMap := make(map[string]any)
 
-			gDBRepo := databases.NewDatabaseService(configFile)
+			gDBRepo := a.NewDatabaseService(configFile)
 			gDBRepoConn, gDBRepoConnErr := gDBRepo.OpenDB()
 			dbB := *gDBRepoConn
 			if gDBRepoConnErr != nil {
@@ -103,7 +103,7 @@ func insertUserCommand() *cobra.Command {
 				return validateErr
 			}
 
-			dckr := services.NewDockerService()
+			dckr := a.NewDockerService()
 			if dckr.IsDockerRunning() {
 				if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
 					return dbErr
@@ -113,7 +113,7 @@ func insertUserCommand() *cobra.Command {
 				return createdUserErr
 			} else {
 				if outputTarget != "" {
-					fsSrv := services.NewFileSystemService(configFile)
+					fsSrv := a.NewFileSystemService(configFile)
 					fs := *fsSrv
 					writeErr := fs.WriteToFile(outputTarget, createdUser, &outputType)
 					if writeErr != nil {
@@ -169,13 +169,13 @@ func viewUserCommand() *cobra.Command {
 		Short:   "View users in the database",
 		Long:    "View users in the database using a terminal table screen",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dckr := services.NewDockerService()
+			dckr := a.NewDockerService()
 			if dckr.IsDockerRunning() {
 				if dbErr := dckr.SetupDatabaseServices(); dbErr != nil {
 					return dbErr
 				}
 			}
-			gDBRepo := databases.NewDatabaseService(configFile)
+			gDBRepo := a.NewDatabaseService(configFile)
 			gDBRepoConn, gDBRepoConnErr := gDBRepo.OpenDB()
 			if gDBRepoConnErr != nil {
 				return gDBRepoConnErr

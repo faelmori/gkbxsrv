@@ -3,7 +3,7 @@ package models
 import (
 	c "github.com/faelmori/gkbxsrv/internal/clientjwt"
 	i "github.com/faelmori/gkbxsrv/internal/models"
-	s "github.com/faelmori/gkbxsrv/services"
+	s "github.com/faelmori/kbxutils/utils/helpers"
 )
 
 type TokenRepo interface {
@@ -13,7 +13,7 @@ type TokenService interface {
 	i.TokenService
 }
 
-func LoadTokenCfg(cfgService s.ConfigService, fsService s.FilesystemService, crtService s.CertService, dbService s.DatabaseService) (TokenService, int64, int64, error) {
+func LoadTokenCfg(cfgService s.ConfigService, fsService s.FileSystemService, crtService s.ICertService, dbService s.IDatabaseService) (TokenService, int64, int64, error) {
 	tkClient := c.NewTokenClient(cfgService, fsService, crtService, dbService)
 	return tkClient.LoadTokenCfg()
 }

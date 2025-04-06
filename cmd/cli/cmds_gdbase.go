@@ -2,13 +2,14 @@ package cli
 
 import (
 	"fmt"
-	databases "github.com/faelmori/gkbxsrv/services"
+	kbxApi "github.com/faelmori/kbxutils/api"
+	kbxsrv "github.com/faelmori/kbxutils/utils/helpers"
 	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 )
 
-var fs databases.FilesystemService
-var dbCfg *databases.DatabaseService
+var fs kbxsrv.FileSystemService
+var dbCfg *kbxsrv.IDatabaseService
 var defaultConfitFile string
 
 func GdbaseCommands() []*cobra.Command {
@@ -23,7 +24,7 @@ func gdbaseCommand() *cobra.Command {
 
 	if defaultConfitFile == "" {
 		if fs == nil {
-			tfs := databases.NewFileSystemService("")
+			tfs := kbxApi.NewFileSystemService("")
 			fs = *tfs
 		}
 		defaultConfitFile = fs.GetConfigFilePath()
@@ -44,7 +45,7 @@ func gdbaseCommand() *cobra.Command {
 		}, true),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			dbaseObj := databases.NewDatabaseService(configFile)
+			dbaseObj := kbxApi.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
 				l.GetLogger("GKBXSrv").Error(fmt.Sprintf("Error connecting to database: %v", dbaseConnErr), nil)

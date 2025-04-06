@@ -2,7 +2,6 @@ package cli
 
 import (
 	"github.com/faelmori/gkbxsrv/internal/services"
-	databases "github.com/faelmori/gkbxsrv/services"
 	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 	"os"
@@ -19,11 +18,11 @@ func BrokerCommands() []*cobra.Command {
 
 func brokerCommand() *cobra.Command {
 	if defaultConfitFile == "" {
-		if fs == nil {
-			tfs := databases.NewFileSystemService("")
-			fs = *tfs
-		}
-		defaultConfitFile = fs.GetConfigFilePath()
+		//if fs == nil {
+		//	tfs := kbxApi.NewFileSystemService("")
+		//	fs = *tfs
+		//}
+		//defaultConfitFile = databases.NewFileSystemService(defaultConfitFile)
 	}
 
 	var brokerExp = []string{

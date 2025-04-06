@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	databases "github.com/faelmori/gkbxsrv/services"
+	kbxApi "github.com/faelmori/kbxutils/api"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ func insertRoleCommand() *cobra.Command {
 		Aliases:     []string{"ins-role", "role"},
 		Annotations: getDescriptions([]string{"Insert a new role into the database.", "Insert role"}, false),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dbaseObj := databases.NewDatabaseService(configFile)
+			dbaseObj := kbxApi.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
 				return dbaseConnErr
