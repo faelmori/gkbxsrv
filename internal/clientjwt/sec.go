@@ -23,7 +23,7 @@ type TokenClient interface {
 	LoadTokenCfg() (TokenService, int64, int64, error)
 }
 type TokenClientImpl struct {
-	cfgSrv                i.ConfigService
+	cfgSrv                i.IConfigService
 	dbSrv                 i.IDatabaseService
 	fsSrv                 i.FileSystemService
 	crtSrv                i.ICertService
@@ -129,7 +129,7 @@ func (t *TokenClientImpl) LoadTokenCfg() (TokenService, int64, int64, error) {
 	return tokenService, idExpirationSecs, refExpirationSecs, nil
 }
 
-func NewTokenClient(cfg i.ConfigService, fs i.FileSystemService, crt i.ICertService, db i.IDatabaseService) TokenClient {
+func NewTokenClient(cfg i.IConfigService, fs i.FileSystemService, crt i.ICertService, db i.IDatabaseService) TokenClient {
 	if cfg == nil {
 		cfg = a.NewConfigService(viper.ConfigFileUsed(), viper.GetString("cert.key_path"), viper.GetString("cert.cert_path"))
 	}

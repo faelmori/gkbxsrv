@@ -10,12 +10,12 @@ import (
 
 var (
 	fsSvc   kbxsrv.FileSystemService
-	cnfgSvc kbxsrv.ConfigService
+	cnfgSvc kbxsrv.IConfigService
 	vSvc    vs.VersionService
 	dbSvc   kbxsrv.IDatabaseService
 	crtSvc  kbxsrv.ICertService
 	//brkrSvc *kbxsrv.Broker
-	dkSvc kbxsrv.DockerService
+	dkSvc kbxsrv.IDockerSrv
 )
 
 func initializeServicesDefault() {
@@ -97,7 +97,7 @@ func GetFilesystemService(configFile string) kbxsrv.FileSystemService {
 	return fsSvc
 }
 
-func GetConfigService(configFile string) kbxsrv.ConfigService {
+func GetConfigService(configFile string) kbxsrv.IConfigService {
 	if cnfgSvc == nil {
 		fs := GetFilesystemService(configFile)
 		cnfgSvc = kbxApi.NewConfigService(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())

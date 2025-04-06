@@ -13,7 +13,7 @@ type TokenService interface {
 	i.TokenService
 }
 
-func LoadTokenCfg(cfgService s.ConfigService, fsService s.FileSystemService, crtService s.ICertService, dbService s.IDatabaseService) (TokenService, int64, int64, error) {
+func LoadTokenCfg(cfgService s.IConfigService, fsService s.FileSystemService, crtService s.ICertService, dbService s.IDatabaseService) (TokenService, int64, int64, error) {
 	tkClient := c.NewTokenClient(cfgService, fsService, crtService, dbService)
 	return tkClient.LoadTokenCfg()
 }
