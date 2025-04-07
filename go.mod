@@ -11,11 +11,12 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/goccy/go-json v0.10.5
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/pebbe/zmq4 v1.3.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	golang.org/x/crypto v0.36.0
+	golang.org/x/crypto v0.37.0
 	golang.org/x/oauth2 v0.29.0
 	gopkg.in/ini.v1 v1.67.0
 	gorm.io/gorm v1.25.12

@@ -4,11 +4,15 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/faelmori/gospider/api/config"
+	"github.com/golang-jwt/jwt/v5"
+
+	j "github.com/dgrijalva/jwt-go"
 	m "github.com/faelmori/gkbxsrv/internal/models"
 	a "github.com/faelmori/kbxutils/api"
 	i "github.com/faelmori/kbxutils/utils/helpers"
-	"github.com/spf13/viper"
+	v "github.com/spf13/viper"
+
 	"log"
 )
 
@@ -23,10 +27,10 @@ type TokenClient interface {
 	LoadTokenCfg() (TokenService, int64, int64, error)
 }
 type TokenClientImpl struct {
-	cfgSrv                i.IConfigService
-	dbSrv                 i.IDatabaseService
-	fsSrv                 i.FileSystemService
-	crtSrv                i.ICertService
+	cfgSrv                config.IConfigManager
+	dbSrv                 m.IDatabaseService
+	fsSrv                 m.FileSystemService
+	crtSrv                config.ICertificateConfig
 	TokenService          m.TokenService
 	IDExpirationSecs      int64
 	RefreshExpirationSecs int64
