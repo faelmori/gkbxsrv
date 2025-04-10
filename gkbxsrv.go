@@ -1,27 +1,30 @@
 package gkbxsrv
 
 import (
+	kbxsrv "github.com/faelmori/gkbxsrv/internal/services"
+	"github.com/faelmori/gkbxsrv/services"
 	vs "github.com/faelmori/gkbxsrv/version"
-	kbxApi "github.com/faelmori/kbxutils/api"
-	kbxsrv "github.com/faelmori/kbxutils/utils/helpers"
+	"github.com/faelmori/kbxutils/factory"
+	kbxApi "github.com/faelmori/kbxutils/utils/interfaces"
+
 	log "github.com/faelmori/logz"
 	"os"
 )
 
 var (
-	fsSvc   kbxsrv.FileSystemService
-	cnfgSvc kbxsrv.IConfigService
+	fsSvc   kbxApi.FileSystemService
+	cnfgSvc kbxApi.IConfigService
 	vSvc    vs.VersionService
-	dbSvc   kbxsrv.IDatabaseService
-	crtSvc  kbxsrv.ICertService
-	//brkrSvc *kbxsrv.Broker
-	dkSvc kbxsrv.IDockerSrv
+	dbSvc   kbxApi.IDatabaseService
+	crtSvc  kbxApi.ICertService
+	brkrSvc *kbxsrv.BrokerImpl
+	dkSvc   kbxApi.IDockerSrv
 )
 
 func initializeServicesDefault() {
 	vSvc = vs.NewVersionService()
 	cv := vSvc.GetCurrentVersion()
-	log.Info("Starting gkbxsrv...", map[string]interface{}{
+	log.InfoCtx("Starting gkbxsrv...", map[string]interface{}{
 		"context": "main",
 		"action":  "start",
 		"version": cv,
@@ -32,9 +35,9 @@ func initializeServicesDefault() {
 	if port == "" {
 		port = "5555"
 	}
-	_, brkrErr := kbxApi.NewBrokerService(true, port)
+	_, brkrErr := services.NewBrokerService(true, port)
 	if brkrErr != nil {
-		log.Error("Error creating broker service", map[string]interface{}{
+		log.ErrorCtx("Error creating broker service", map[string]interface{}{
 			"context": "main",
 			"action":  "newBrokerService",
 			"error":   brkrErr,
@@ -44,14 +47,14 @@ func initializeServicesDefault() {
 	}
 
 	//Filesystem service
-	fs := kbxApi.NewFileSystemService("gkbxsrv")
+	fs := factory.NewFilesystemService("gkbxsrv")
 	fsSvc = *fs
 
 	//Config service
-	cnfgSvc = kbxApi.NewConfigService(fsSvc.GetConfigFilePath(), fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
+	cnfgSvc = factory.NewConfigService(fsSvc.GetConfigFilePath(), fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
 	loadCfgErr := cnfgSvc.LoadConfig()
 	if loadCfgErr != nil {
-		log.Error("Error loading configuration", map[string]interface{}{
+		log.ErrorCtx("Error loading configuration", map[string]interface{}{
 			"context": "main",
 			"action":  "loadConfig",
 			"error":   loadCfgErr,
@@ -62,16 +65,16 @@ func initializeServicesDefault() {
 	}
 
 	//Docker service
-	dkSvc = kbxApi.NewDockerService()
+	dkSvc = factory.NewDockerService()
 	if dkSvcInsChk := dkSvc.IsDockerInstalled(); !dkSvcInsChk {
-		log.Warn("Docker is not installed", map[string]interface{}{
+		log.WarnCtx("Docker is not installed", map[string]interface{}{
 			"context": "main",
 			"action":  "isDockerInstalled",
 			"version": cv,
 		})
 		insDockerErr := dkSvc.InstallDocker()
 		if insDockerErr != nil {
-			log.Error("Error installing Docker", map[string]interface{}{
+			log.ErrorCtx("Error installing Docker", map[string]interface{}{
 				"context": "main",
 				"action":  "installDocker",
 				"error":   insDockerErr,
@@ -82,29 +85,29 @@ func initializeServicesDefault() {
 	}
 
 	//Database service
-	dbSvc = kbxApi.NewDatabaseService(cnfgSvc.GetConfigPath())
+	dbSvc = factory.NewDatabaseService(cnfgSvc.GetConfigPath())
 
 	//Certificate service
-	cs := kbxApi.NewCertService(fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
+	cs := factory.NewCertService(fsSvc.GetDefaultKeyPath(), fsSvc.GetDefaultCertPath())
 	crtSvc = cs
 }
 
-func GetFilesystemService(configFile string) kbxsrv.FileSystemService {
+func GetFilesystemService(configFile string) kbxApi.FileSystemService {
 	if fsSvc == nil {
-		fs := kbxApi.NewFileSystemService(configFile)
+		fs := factory.NewFilesystemService("")
 		fsSvc = *fs
 	}
 	return fsSvc
 }
 
-func GetConfigService(configFile string) kbxsrv.IConfigService {
+func GetConfigService(configFile string) kbxApi.IConfigService {
 	if cnfgSvc == nil {
 		fs := GetFilesystemService(configFile)
-		cnfgSvc = kbxApi.NewConfigService(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
+		cnfgSvc = factory.NewConfigService(fs.GetConfigFilePath(), fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
 	}
 	cnfgSvcErr := cnfgSvc.LoadConfig()
 	if cnfgSvcErr != nil {
-		log.Error("Error loading configuration", map[string]interface{}{
+		log.ErrorCtx("Error loading configuration", map[string]interface{}{
 			"context": "main",
 			"action":  "loadConfig",
 			"error":   cnfgSvcErr,
@@ -120,28 +123,28 @@ func GetVersionService() vs.VersionService {
 	return vSvc
 }
 
-func GetDatabaseService(configFile string) kbxApi.DatabaseService {
+func GetDatabaseService(configFile string) kbxApi.IDatabaseService {
 	if dbSvc == nil {
 		cnfgSvc := GetConfigService(configFile)
-		dbSvc = kbxApi.NewDatabaseService(cnfgSvc.GetConfigPath())
+		dbSvc = factory.NewDatabaseService(cnfgSvc.GetConfigPath())
 	}
 	return dbSvc
 }
 
-func GetCertService() kbxsrv.ICertService {
+func GetCertService() kbxApi.ICertService {
 	if crtSvc == nil {
 		fs := GetFilesystemService("gkbxsrv")
-		cs := kbxApi.NewCertService(fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
+		cs := factory.NewCertService(fs.GetDefaultKeyPath(), fs.GetDefaultCertPath())
 		crtSvc = cs
 	}
 	return crtSvc
 }
 
-func NewBrokerService(port string) *kbxsrv.Broker {
+func NewBrokerService(port string) *services.Broker {
 	if brkrSvc == nil {
-		_, brkrErr := kbxsrv.NewBrokerService(true, port)
+		_, brkrErr := services.NewBrokerService(true, port)
 		if brkrErr != nil {
-			log.Error("Error creating broker service", map[string]interface{}{
+			log.ErrorCtx("Error creating broker service", map[string]interface{}{
 				"context": "main",
 				"action":  "newBrokerService",
 				"error":   brkrErr,
@@ -151,9 +154,9 @@ func NewBrokerService(port string) *kbxsrv.Broker {
 	return brkrSvc
 }
 
-func GetDockerService() kbxApi.DockerSrv {
+func GetDockerService() kbxApi.IDockerSrv {
 	if dkSvc == nil {
-		dkSvc = kbxApi.NewDockerService()
+		dkSvc = factory.NewDockerService()
 	}
 	return dkSvc
 }

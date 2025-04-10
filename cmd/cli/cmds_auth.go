@@ -122,7 +122,7 @@ func authenticateUserCommand() *cobra.Command {
 						FormFields: fields,
 					})
 					if tuizErr != nil {
-						l.Error(fmt.Sprintf("Error: %v", tuizErr), map[string]any{
+						l.ErrorCtx(fmt.Sprintf("Error: %v", tuizErr), map[string]any{
 							"context": "tuiz",
 							"error":   tuizErr,
 						})
@@ -130,7 +130,7 @@ func authenticateUserCommand() *cobra.Command {
 					username = tuizResult["field0"]
 					password = tuizResult["field2"]
 				} else {
-					l.Error("Username and password are required", map[string]any{
+					l.ErrorCtx("Username and password are required", map[string]any{
 						"context": "tuiz",
 					})
 					return
@@ -139,7 +139,7 @@ func authenticateUserCommand() *cobra.Command {
 			dbaseObj := databases.NewDatabaseService(configFile)
 			_, dbaseConnErr := dbaseObj.OpenDB()
 			if dbaseConnErr != nil {
-				l.Error("Error connecting to database", map[string]any{
+				l.ErrorCtx("Error connecting to database", map[string]any{
 					"context": "tuiz",
 					"error":   dbaseConnErr,
 				})

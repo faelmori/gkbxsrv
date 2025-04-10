@@ -4,13 +4,11 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
-	"github.com/faelmori/gospider/api/config"
+	kbxApi "github.com/faelmori/kbxutils/utils/interfaces"
 	"github.com/golang-jwt/jwt/v5"
 
-	j "github.com/dgrijalva/jwt-go"
 	m "github.com/faelmori/gkbxsrv/internal/models"
-	a "github.com/faelmori/kbxutils/api"
-	i "github.com/faelmori/kbxutils/utils/helpers"
+	a "github.com/faelmori/kbxutils/factory"
 	v "github.com/spf13/viper"
 
 	"log"
@@ -27,17 +25,17 @@ type TokenClient interface {
 	LoadTokenCfg() (TokenService, int64, int64, error)
 }
 type TokenClientImpl struct {
-	cfgSrv                config.IConfigManager
-	dbSrv                 m.IDatabaseService
-	fsSrv                 m.FileSystemService
-	crtSrv                config.ICertificateConfig
+	cfgSrv                kbxApi.ConfigService
+	dbSrv                 kbxApi.IDatabaseService
+	fsSrv                 kbxApi.FileSystemService
+	crtSrv                kbxApi.ICertService
 	TokenService          m.TokenService
 	IDExpirationSecs      int64
 	RefreshExpirationSecs int64
 }
 
 func (t *TokenClientImpl) LoadPrivateKey() (*PrivateKey, error) {
-	keyDataB64 := viper.GetString("jwt.private_key")
+	keyDataB64 := v.GetString("jwt.private_key")
 	if keyDataB64 == "" {
 		return nil, fmt.Errorf("error reading private key file: %v", "jwt.private_key is empty")
 	}
@@ -56,7 +54,7 @@ func (t *TokenClientImpl) LoadPrivateKey() (*PrivateKey, error) {
 	return &privateKey, nil
 }
 func (t *TokenClientImpl) LoadPublicKey() *PublicKey {
-	if readErr := viper.ReadInConfig(); readErr != nil {
+	if readErr := v.ReadInConfig(); readErr != nil {
 		log.Fatalf("Error reading public key file: %v", readErr)
 	}
 	if !t.fsSrv.ExistsConfigFile() {
@@ -64,12 +62,12 @@ func (t *TokenClientImpl) LoadPublicKey() *PublicKey {
 	}
 
 	if !t.cfgSrv.IsConfigLoaded() {
-		if loadErr := t.cfgSrv.LoadConfig(); loadErr != nil {
-			log.Fatalf("Error loading config file: %v", loadErr)
-		}
+		//if loadErr := t.cfgSrv.LoadConfig(); loadErr != nil {
+		//	log.Fatalf("Error loading config file: %v", loadErr)
+		//}
 	}
 
-	keyDataB64 := viper.GetString("jwt.public_key")
+	keyDataB64 := v.GetString("jwt.public_key")
 	if keyDataB64 == "" {
 		log.Fatalf("Error reading public key file: %v", "jwt.public_key is empty")
 	}
@@ -89,14 +87,14 @@ func (t *TokenClientImpl) LoadPublicKey() *PublicKey {
 	return &publicKey
 }
 func (t *TokenClientImpl) LoadTokenCfg() (TokenService, int64, int64, error) {
-	t.fsSrv = *a.NewFileSystemService(t.cfgSrv.GetConfigPath())
+	t.fsSrv = *a.NewFilesystemService(t.cfgSrv.GetConfigPath())
 	t.crtSrv = a.NewCertService(t.fsSrv.GetDefaultKeyPath(), t.fsSrv.GetDefaultCertPath())
 	db, dbErr := t.dbSrv.GetDB()
 	if dbErr != nil {
 		return nil, 0, 0, dbErr
 	}
 	tokenRepo := m.NewTokenRepo(db)
-	privKey := viper.GetString("jwt.private_key")
+	privKey := v.GetString("jwt.private_key")
 	if privKey == "" {
 		return nil, 0, 0, fmt.Errorf("error reading private key file: %v", "jwt.private_key is empty")
 	}
@@ -116,9 +114,9 @@ func (t *TokenClientImpl) LoadTokenCfg() (TokenService, int64, int64, error) {
 		return nil, 0, 0, fmt.Errorf("error reading private key file: %v", "public key does not match private key")
 	}
 
-	refreshSecret := viper.GetString("jwt.refresh_secret")
-	idExpirationSecs := viper.GetInt64("jwt.id_expiration_secs")
-	refExpirationSecs := viper.GetInt64("jwt.refresh_expiration_secs")
+	refreshSecret := v.GetString("jwt.refresh_secret")
+	idExpirationSecs := v.GetInt64("jwt.id_expiration_secs")
+	refExpirationSecs := v.GetInt64("jwt.refresh_expiration_secs")
 
 	tkConfig := &TSConfig{
 		TokenRepository:       tokenRepo,
@@ -133,21 +131,21 @@ func (t *TokenClientImpl) LoadTokenCfg() (TokenService, int64, int64, error) {
 	return tokenService, idExpirationSecs, refExpirationSecs, nil
 }
 
-func NewTokenClient(cfg i.IConfigService, fs i.FileSystemService, crt i.ICertService, db i.IDatabaseService) TokenClient {
+func NewTokenClient(cfg kbxApi.IConfigService, fs kbxApi.FileSystemService, crt kbxApi.ICertService, db kbxApi.IDatabaseService) TokenClient {
 	if cfg == nil {
-		cfg = a.NewConfigService(viper.ConfigFileUsed(), viper.GetString("cert.key_path"), viper.GetString("cert.cert_path"))
+		cfg = a.NewConfigService(v.ConfigFileUsed(), v.GetString("cert.key_path"), v.GetString("cert.cert_path"))
 	}
 	if fs == nil {
-		fs = *a.NewFileSystemService(viper.GetString("fs.config_file_path"))
+		fs = *a.NewFilesystemService(v.GetString("fs.config_file_path"))
 	}
 	if crt == nil {
-		crt = a.NewCertService(viper.GetString("cert.key_path"), viper.GetString("cert.cert_path"))
+		crt = a.NewCertService(v.GetString("cert.key_path"), v.GetString("cert.cert_path"))
 	}
 	if db == nil {
-		db = a.NewDatabaseService(viper.GetString("db.connection_string"))
+		db = a.NewDatabaseService(v.GetString("db.connection_string"))
 	}
 	tokenClient := &TokenClientImpl{
-		cfgSrv: cfg,
+		cfgSrv: nil,
 		fsSrv:  fs,
 		crtSrv: crt,
 		dbSrv:  db,

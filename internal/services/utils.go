@@ -34,7 +34,7 @@ func getBrokersPath() (string, error) {
 
 	if _, statErr := os.Stat(brkDir); statErr != nil {
 		if mkDirErr := os.MkdirAll(brkDir, 0755); mkDirErr != nil {
-			logz.Error("Error creating brokers", map[string]interface{}{
+			logz.ErrorCtx("Error creating brokers", map[string]interface{}{
 				"context":  "gkbxsrv",
 				"action":   "getBrokerPath",
 				"showData": true,
@@ -44,7 +44,7 @@ func getBrokersPath() (string, error) {
 		}
 	}
 
-	logz.Info(fmt.Sprintf("PID's folder: %s", brkDir), map[string]interface{}{
+	logz.InfoCtx(fmt.Sprintf("PID's folder: %s", brkDir), map[string]interface{}{
 		"context": "gkbxsrv",
 		"action":  "getBrokerPath",
 	})

@@ -73,14 +73,14 @@ func GetLatestVersionFromGit() string {
 
 	response, err := netClient.Get(gitUrlWithoutGit + "/releases/latest")
 	if err != nil {
-		l.Error("Error fetching latest version: "+err.Error(), map[string]interface{}{})
-		l.Error("Url: "+gitUrlWithoutGit+"/releases/latest", map[string]interface{}{})
+		l.ErrorCtx("Error fetching latest version: "+err.Error(), map[string]interface{}{})
+		l.ErrorCtx("Url: "+gitUrlWithoutGit+"/releases/latest", map[string]interface{}{})
 		return err.Error()
 	}
 
 	if response.StatusCode != 200 {
-		l.Error("Error fetching latest version: "+response.Status, map[string]interface{}{})
-		l.Error("Url: "+gitUrlWithoutGit+"/releases/latest", map[string]interface{}{})
+		l.ErrorCtx("Error fetching latest version: "+response.Status, map[string]interface{}{})
+		l.ErrorCtx("Url: "+gitUrlWithoutGit+"/releases/latest", map[string]interface{}{})
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Sprintf("Error: %s\nResponse: %s", response.Status, string(body))
 	}
